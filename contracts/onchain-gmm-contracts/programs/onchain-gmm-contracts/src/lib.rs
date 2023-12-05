@@ -38,6 +38,41 @@ pub struct CreateDeposit<'info> {
     pub system_program: Program<'info, System>
 }
 
+// 1 State account instance == 1 Safe Pay instance
+#[account]
+#[derive(Default)]
+pub struct State {
+
+    // A primary key that allows us to derive other important accounts
+    idx: u64,
+    
+    // Alice
+    user_sending: Pubkey,
+
+    // Bob
+    user_receiving: Pubkey,
+
+    // The Mint of the token that Alice wants to send to Bob
+    mint_of_token_being_sent: Pubkey,
+
+    // The escrow wallet
+    escrow_wallet: Pubkey,
+
+    // The amount of tokens Alice wants to send to Bob
+    amount_tokens: u64,
+
+    // An enumm that is to represent some kind of state machine
+    stage: u8,
+}
+
+#[derive(Accounts)]
+#[instruction(application_idx: u64, state_bump: u8, wallet_bump: u8)]
+pub struct InitializeNewGrant<'info> {
+    
+
+}
+
+
 #[derive(Accounts)]
 pub struct UpdateDeposit<'info> {
     #[account(mut)]
