@@ -17,6 +17,32 @@ pub mod onchain_gmm_contracts {
         ctx.accounts.deposit.amount = amount;
         Ok(())
     }
+
+    pub fn create_pool(ctx: Context<CreatePool>) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        deposit.
+    }
+}
+
+// 1 State account instance == 1 Safe Pay instance
+#[account]
+#[derive(Default)]
+pub struct Pool {
+    
+    // tokenA in the pool
+    token_a: Pubkey,
+    
+    // tokenB in the pool
+    token_b: Pubkey,
+    
+    // a * b = k
+    k_constant: u64,
+
+    // token a dispositors
+    token_a_depositors: Vec<Pubkey>,
+
+    // token b dispositors
+    token_b_depositors: Vec<Pubkey>,
 }
 
 #[derive(Accounts)]
@@ -64,14 +90,6 @@ pub struct State {
     // An enumm that is to represent some kind of state machine
     stage: u8,
 }
-
-#[derive(Accounts)]
-#[instruction(application_idx: u64, state_bump: u8, wallet_bump: u8)]
-pub struct InitializeNewGrant<'info> {
-    
-
-}
-
 
 #[derive(Accounts)]
 pub struct UpdateDeposit<'info> {
