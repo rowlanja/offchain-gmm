@@ -20,16 +20,14 @@ pub mod onchain_gmm_contracts {
     }
 
     pub fn create_pool(
-        ctx: Context<CreatePool>,
-        token_a: Pubkey,
-        token_b: Pubkey
+        ctx: Context<DepositLiquidity>
     ) -> Result<()> {
-        let pool = &mut ctx.accounts.pool;
-        pool.token_a = token_a;
-        pool.token_b = token_b;
+        let pool = &mut ctx.accounts.application_state;
         pool.token_a_depositors = Vec::new();
-        pool.token_a_depositors = Vec::new();
-
+        pool.token_b_depositors = Vec::new();
+        pool.token_a = ctx.accounts.pool_wallet_token_a.key().clone();
+        pool.token_a = ctx.accounts.pool_wallet_token_a.key().clone();
+        pool.k_constant = 4000;
         Ok(())
     }
 
@@ -46,7 +44,7 @@ pub struct DepositLiquidity<'info> {
      #[account(
         init,
         payer = user_sending,
-        seeds=[b"state".as_ref(), user_sending.key().as_ref(), user_receiving.key.as_ref(), mint_of_token_being_sent.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
         bump,
         space = 8 + 32 + 32 + 8 + 70 + 70
     )]
@@ -54,26 +52,36 @@ pub struct DepositLiquidity<'info> {
     #[account(
         init,
         payer = user_sending,
-        seeds=[b"wallet".as_ref(), user_sending.key().as_ref(), user_receiving.key.as_ref(), mint_of_token_being_sent.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref(), application_idx.to_le_bytes().as_ref()],
         bump,
-        token::mint=mint_of_token_being_sent,
+        token::mint=mint_of_token_being_sent_a,
         token::authority=application_state,
     )]
-    escrow_wallet_state: Account<'info, TokenAccount>,
+    pool_wallet_token_a: Account<'info, TokenAccount>,
+
+    #[account(
+        init,
+        payer = user_sending,
+        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        bump,
+        token::mint=mint_of_token_being_sent_b,
+        token::authority=application_state,
+    )]
+    pool_wallet_token_b: Account<'info, TokenAccount>,
 
     // Users and accounts in the system
     #[account(mut)]
     user_sending: Signer<'info>,                     // Alice
     user_receiving: AccountInfo<'info>,              // Bob
-    mint_of_token_being_sent: Account<'info, Mint>,  // USDC
-
+    mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
+    mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
     // Alice's USDC wallet that has already approved the escrow wallet
-    #[account(
-        mut,
-        constraint=wallet_to_withdraw_from.owner == user_sending.key(),
-        constraint=wallet_to_withdraw_from.mint == mint_of_token_being_sent.key()
-    )]
-    wallet_to_withdraw_from: Account<'info, TokenAccount>,
+    // #[account(
+    //     mut,
+    //     constraint=wallet_to_withdraw_from.owner == user_sending.key(),
+    //     constraint=wallet_to_withdraw_from.mint == mint_of_token_being_sent.key()
+    // )]
+    // wallet_to_withdraw_from: Account<'info, TokenAccount>,
 
     // Application level accounts
     system_program: Program<'info, System>,
