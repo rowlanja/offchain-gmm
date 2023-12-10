@@ -40,41 +40,26 @@ pub mod onchain_gmm_contracts {
 #[derive(Accounts)]
 #[instruction(application_idx: u64, deposit_bump: u8, wallet_bump: u8)]
 pub struct DepositLiquidity<'info> {
-    //  // Derived PDAs
-    //  #[account(
-    //     init,
-    //     payer = user_sending,
-    //     seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
-    //     bump,
-    //     space = 8 + 32 + 32 + 8 + 70 + 70
-    // )]
-    // application_state: Account<'info, Pool>,
-    // #[account(
-    //     init,
-    //     payer = user_sending,
-    //     seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref(), application_idx.to_le_bytes().as_ref()],
-    //     bump,
-    //     token::mint=mint_of_token_being_sent_a,
-    //     token::authority=application_state,
-    // )]
-    // pool_wallet_token_a: Account<'info, TokenAccount>,
+     // Derived PDAs
+     #[account(
+        mut,
+        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        bump,
+    )]
+    application_state: Account<'info, Pool>,
 
-    // #[account(
-    //     init,
-    //     payer = user_sending,
-    //     seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
-    //     bump,
-    //     token::mint=mint_of_token_being_sent_b,
-    //     token::authority=application_state,
-    // )]
-    // pool_wallet_token_b: Account<'info, TokenAccount>,
+    #[account(mut)]
+    user_wallet_token_a: Account<'info, TokenAccount>,
 
-    // // Users and accounts in the system
-    // #[account(mut)]
-    // user_sending: Signer<'info>,                     // Alice
+    #[account(mut)]
+    user_wallet_token_b: Account<'info, TokenAccount>,
+
+    // Users and accounts in the system
+    #[account(mut)]
+    user_sending: Signer<'info>,                     // Alice
     // user_receiving: AccountInfo<'info>,              // Bob
-    // mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
-    // mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
+    mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
+    mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
     // // Alice's USDC wallet that has already approved the escrow wallet
     // // #[account(
     // //     mut,
@@ -84,8 +69,8 @@ pub struct DepositLiquidity<'info> {
     // // wallet_to_withdraw_from: Account<'info, TokenAccount>,
 
     // // Application level accounts
-    // system_program: Program<'info, System>,
-    // token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+    token_program: Program<'info, Token>,
     // rent: Sysvar<'info, Rent>,
 }
 
@@ -101,6 +86,10 @@ pub struct CreateLiquidityPool<'info> {
         space = 8 + 32 + 32 + 8 + 70 + 70
     )]
     application_state: Account<'info, Pool>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
     #[account(
         init,
         payer = user_sending,
