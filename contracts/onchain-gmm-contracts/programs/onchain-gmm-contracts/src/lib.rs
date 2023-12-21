@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
+use anchor_spl::token::{Mint, Token, TokenAccount, Transfer};
 
 declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
@@ -26,7 +26,7 @@ pub mod onchain_gmm_contracts {
         Ok(())
     }
 
-    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, application_idx: u64, amount: u64, state_bump: u8) -> Result<()> {
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
         let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
@@ -34,21 +34,21 @@ pub mod onchain_gmm_contracts {
         println!("deposit balance [{}]", depositor_balance);
         println!("pool balance [{}]", pool_balance);
         // load pool state
-        let pool = &mut ctx.accounts.application_state;
+        // let pool = &mut ctx.accounts.application_state;
 
         // check provider has enough of token account a
         // This specific step is very different compared to Ethereum. In Ethereum, accounts need to first set allowances towards 
         // a specific contract (like ZeroEx, Uniswap, Curve..) before the contract is able to withdraw funds. In this other case,
         // the SafePay program can use Bob's signature to "authenticate" the `transfer()` instruction sent to the token contract.
         let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
-        let application_idx_bytes = application_idx.to_le_bytes();
+        // let application_idx_bytes = application_idx.to_le_bytes();
         let binding = ctx.accounts.user_wallet_token_a.key();
         let inner = vec![
             b"state".as_ref(),
             binding.as_ref(),
             // ctx.accounts.user_wallet_token_b.key().as_ref(),
             mint_of_token_being_sent_pk_a.as_ref(), 
-            application_idx_bytes.as_ref(),
+            // application_idx_bytes.as_ref(),
         ];
         let outer = vec![inner.as_slice()];
 
@@ -161,6 +161,7 @@ pub struct CreateLiquidityPool<'info> {
     // Users and accounts in the system
     #[account(mut)]
     user_sending: Signer<'info>,                     // Alice
+    /// CHECK:
     user_receiving: AccountInfo<'info>,              // Bob
     mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
     mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
