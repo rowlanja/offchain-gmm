@@ -14,11 +14,6 @@ pub mod onchain_gmm_contracts {
         Ok(())
     }
 
-    pub fn deposit(ctx: Context<UpdateDeposit>, amount: u16) -> Result<()> {
-        ctx.accounts.deposit.amount = amount;
-        Ok(())
-    }
-
     pub fn create_pool(
         ctx: Context<CreateLiquidityPool>
     ) -> Result<()> {
@@ -26,16 +21,69 @@ pub mod onchain_gmm_contracts {
         pool.token_a_depositors = Vec::new();
         pool.token_b_depositors = Vec::new();
         pool.token_a = ctx.accounts.pool_wallet_token_a.key().clone();
-        pool.token_a = ctx.accounts.pool_wallet_token_a.key().clone();
+        pool.token_b = ctx.accounts.pool_wallet_token_b.key().clone();
         pool.k_constant = 4000;
         Ok(())
     }
 
-    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u16) -> Result<()> {
+    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, application_idx: u64, amount: u64, state_bump: u8) -> Result<()> {
+        // print balances
+        let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+        let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
+
+        println!("deposit balance [{}]", depositor_balance);
+        println!("pool balance [{}]", pool_balance);
+        // load pool state
+        let pool = &mut ctx.accounts.application_state;
+
+        // check provider has enough of token account a
+        // This specific step is very different compared to Ethereum. In Ethereum, accounts need to first set allowances towards 
+        // a specific contract (like ZeroEx, Uniswap, Curve..) before the contract is able to withdraw funds. In this other case,
+        // the SafePay program can use Bob's signature to "authenticate" the `transfer()` instruction sent to the token contract.
+        let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
+        let application_idx_bytes = application_idx.to_le_bytes();
+        let binding = ctx.accounts.user_wallet_token_a.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+            // ctx.accounts.user_wallet_token_b.key().as_ref(),
+            mint_of_token_being_sent_pk_a.as_ref(), 
+            application_idx_bytes.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
+
+       // check provider has enough of token account b
+        // move lp token account a to pool token account a
+        // Below is the actual instruction that we are going to send to the Token program.
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_a.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+            authority: ctx.accounts.user_sending.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
+
+        // The `?` at the end will cause the function to return early in case of an error.
+        // This pattern is common in Rust.
+        anchor_spl::token::transfer(cpi_ctx, amount)?;
+
+        // Mark stage as deposited.
+        // state.stage = Stage::FundsDeposited.to_code();
+        // move lp token account b to pool token account b
+
+        // print balances
+
+        let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+        let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
+
+        println!("deposit balance [{}]", depositor_balance);
+        println!("pool balance [{}]", pool_balance);
         Ok(())
     }
 }
-
 
 #[derive(Accounts)]
 #[instruction(application_idx: u64, deposit_bump: u8, wallet_bump: u8)]
@@ -52,7 +100,7 @@ pub struct DepositLiquidity<'info> {
     user_wallet_token_a: Account<'info, TokenAccount>,
 
     #[account(mut)]
-    user_wallet_token_b: Account<'info, TokenAccount>,
+    pool_wallet_token_b: Account<'info, TokenAccount>,
 
     // Users and accounts in the system
     #[account(mut)]
