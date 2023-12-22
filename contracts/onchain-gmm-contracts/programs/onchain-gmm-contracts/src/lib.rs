@@ -32,7 +32,7 @@ pub mod onchain_gmm_contracts {
         msg!("depositor balance [{}]", depositor_balance);
 
         let pool = ctx.accounts.pool.clone();
-        let pool_balance 
+        let pool_balance = ctx.accounts.pool_wallet_state.amount;
         println!("pool balance [{}]", pool_balance);
         // load pool state
         // let pool = &mut ctx.accounts.application_state;
@@ -89,7 +89,7 @@ pub mod onchain_gmm_contracts {
 #[derive(Accounts)]
 pub struct DepositLiquidity<'info> {
     //  Derived PDAs
-     #[account(
+    #[account(
         mut,
         seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
         bump,
@@ -97,11 +97,18 @@ pub struct DepositLiquidity<'info> {
     pool: Account<'info, Pool>,
 
     #[account(mut)]
-    user_wallet_token_a: Account<'info, TokenAccount>,
+    user_wallet_token_a: Account<'info, TokenAccount>, // staker
     mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
-    // #[account(mut)]
-    // pool_wallet_token_b: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pool_wallet_token_b: Account<'info, TokenAccount>,
 
+
+    #[account(
+        mut,
+        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+        bump,
+    )]
+    pool_wallet_state: Account<'info, TokenAccount>,
     // Users and accounts in the system
     // #[account(mut)]
     // user_sending: Signer<'info>,                     // Alice

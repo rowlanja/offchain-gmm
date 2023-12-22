@@ -38,6 +38,32 @@ describe("onchain-gmm-contracts", () => {
     expect((await program.account.deposit.fetch(depositPDA)).amount).to.equal(0);
   });
 
+  it("creates liquidity pool!", async () => {
+    // Add your test here.
+    const mintAddress = await createMint(provider.connection);
+    const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
+    let poolKey = anchor.web3.Keypair.generate()
+    let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
+    const amount = new anchor.BN(20000000);
+
+    const [, aliceBalancePre] = await readAccount(aliceWallet, provider);
+
+    console.log("Balance : " + aliceBalancePre)
+
+    await program.methods.createPool().accounts(
+      {
+        userWalletTokenA: aliceWallet,
+        // poolWalletTokenB: poolKey.publicKey,
+        // userSending: alice.publicKey,
+        // mintOfTokenBeingSentA: mintObject.publicKey,
+        // mintOfTokenBeingSentB: mintObject.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+      }
+    )
+    .rpc();
+  });
+
   it("deposits liquidity into pool!", async () => {
     // Add your test here.
     const mintAddress = await createMint(provider.connection);
