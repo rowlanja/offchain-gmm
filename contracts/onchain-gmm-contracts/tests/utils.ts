@@ -17,7 +17,8 @@ export async function mintToAccount(
     provider,
     mint,
     destination,
-    amount
+    amount,
+    owner
 ) {
     const tx = new anchor.web3.Transaction();
     tx.add(
@@ -30,7 +31,7 @@ export async function mintToAccount(
         amount
       )
     );
-    await provider.sendAndConfirm(tx);
+    await provider.sendAndConfirm(tx, [owner]);
 }
 
 export async function sendLamports(

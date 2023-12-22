@@ -17,11 +17,9 @@ pub mod onchain_gmm_contracts {
     pub fn create_pool(
         ctx: Context<CreateLiquidityPool>
     ) -> Result<()> {
-        let pool = &mut ctx.accounts.application_state;
-        pool.token_a_depositors = Vec::new();
-        pool.token_b_depositors = Vec::new();
-        pool.token_a = ctx.accounts.pool_wallet_token_a.key().clone();
-        pool.token_b = ctx.accounts.pool_wallet_token_b.key().clone();
+        let pool = &mut ctx.accounts.pool;
+        pool.pool_wallet_a = ctx.accounts.pool_wallet_token_a.key().clone();
+        pool.pool_wallet_b = ctx.accounts.pool_wallet_token_b.key().clone();
         pool.k_constant = 4000;
         Ok(())
     }
@@ -29,9 +27,12 @@ pub mod onchain_gmm_contracts {
     pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
-        let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
+        // let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
 
-        println!("deposit balance [{}]", depositor_balance);
+        msg!("depositor balance [{}]", depositor_balance);
+
+        let pool = ctx.accounts.pool.clone();
+        let pool_balance 
         println!("pool balance [{}]", pool_balance);
         // load pool state
         // let pool = &mut ctx.accounts.application_state;
@@ -40,74 +41,73 @@ pub mod onchain_gmm_contracts {
         // This specific step is very different compared to Ethereum. In Ethereum, accounts need to first set allowances towards 
         // a specific contract (like ZeroEx, Uniswap, Curve..) before the contract is able to withdraw funds. In this other case,
         // the SafePay program can use Bob's signature to "authenticate" the `transfer()` instruction sent to the token contract.
-        let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
+        // let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
         // let application_idx_bytes = application_idx.to_le_bytes();
-        let binding = ctx.accounts.user_wallet_token_a.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-            // ctx.accounts.user_wallet_token_b.key().as_ref(),
-            mint_of_token_being_sent_pk_a.as_ref(), 
-            // application_idx_bytes.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+    //     let binding = ctx.accounts.user_wallet_token_a.key();
+    //     let inner = vec![
+    //         b"state".as_ref(),
+    //         binding.as_ref(),
+    //         // ctx.accounts.user_wallet_token_b.key().as_ref(),
+    //         // mint_of_token_being_sent_pk_a.as_ref(), 
+    //         // application_idx_bytes.as_ref(),
+    //     ];
+    //     let outer = vec![inner.as_slice()];
 
-       // check provider has enough of token account b
-        // move lp token account a to pool token account a
-        // Below is the actual instruction that we are going to send to the Token program.
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_a.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
-            authority: ctx.accounts.user_sending.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
+    //    // check provider has enough of token account b
+    //     // move lp token account a to pool token account a
+    //     // Below is the actual instruction that we are going to send to the Token program.
+    //     let transfer_instruction = Transfer{
+    //         from: ctx.accounts.user_wallet_token_a.to_account_info(),
+    //         to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+    //         authority: ctx.accounts.user_sending.to_account_info(),
+    //     };
+    //     let cpi_ctx = CpiContext::new_with_signer(
+    //         ctx.accounts.token_program.to_account_info(),
+    //         transfer_instruction,
+    //         outer.as_slice(),
+    //     );
 
         // The `?` at the end will cause the function to return early in case of an error.
         // This pattern is common in Rust.
-        anchor_spl::token::transfer(cpi_ctx, amount)?;
+        // anchor_spl::token::transfer(cpi_ctx, amount)?;
 
-        // Mark stage as deposited.
-        // state.stage = Stage::FundsDeposited.to_code();
-        // move lp token account b to pool token account b
+        // // Mark stage as deposited.
+        // // state.stage = Stage::FundsDeposited.to_code();
+        // // move lp token account b to pool token account b
 
-        // print balances
+        // // print balances
 
-        let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
-        let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
+        // let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+        // let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
 
-        println!("deposit balance [{}]", depositor_balance);
-        println!("pool balance [{}]", pool_balance);
+        msg!("deposit balance [{}]", depositor_balance);
+        // println!("pool balance [{}]", pool_balance);
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(application_idx: u64, deposit_bump: u8, wallet_bump: u8)]
 pub struct DepositLiquidity<'info> {
-     // Derived PDAs
+    //  Derived PDAs
      #[account(
         mut,
-        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
         bump,
     )]
-    application_state: Account<'info, Pool>,
+    pool: Account<'info, Pool>,
 
     #[account(mut)]
     user_wallet_token_a: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pool_wallet_token_b: Account<'info, TokenAccount>,
+    mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+    // #[account(mut)]
+    // pool_wallet_token_b: Account<'info, TokenAccount>,
 
     // Users and accounts in the system
-    #[account(mut)]
-    user_sending: Signer<'info>,                     // Alice
-    // user_receiving: AccountInfo<'info>,              // Bob
-    mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
-    mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
+    // #[account(mut)]
+    // user_sending: Signer<'info>,                     // Alice
+    // // user_receiving: AccountInfo<'info>,              // Bob
+    // mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
+    // mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
     // // Alice's USDC wallet that has already approved the escrow wallet
     // // #[account(
     // //     mut,
@@ -123,55 +123,42 @@ pub struct DepositLiquidity<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(application_idx: u64, deposit_bump: u8, wallet_bump: u8)]
 pub struct CreateLiquidityPool<'info> {
      // Derived PDAs
      #[account(
         init,
-        payer = user_sending,
-        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        payer = owner,
+        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
         bump,
         space = 8 + 32 + 32 + 8 + 70 + 70
     )]
-    application_state: Account<'info, Pool>,
-
-    #[account(mut)]
-    pub user: Signer<'info>,
+    pool: Account<'info, Pool>,
 
     #[account(
         init,
-        payer = user_sending,
-        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        payer = owner,
+        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
         bump,
         token::mint=mint_of_token_being_sent_a,
-        token::authority=application_state,
+        token::authority=pool,
     )]
     pool_wallet_token_a: Account<'info, TokenAccount>,
 
     #[account(
         init,
-        payer = user_sending,
-        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref(), application_idx.to_le_bytes().as_ref()],
+        payer = owner,
+        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref()],
         bump,
         token::mint=mint_of_token_being_sent_b,
-        token::authority=application_state,
+        token::authority=pool,
     )]
     pool_wallet_token_b: Account<'info, TokenAccount>,
 
     // Users and accounts in the system
     #[account(mut)]
-    user_sending: Signer<'info>,                     // Alice
-    /// CHECK:
-    user_receiving: AccountInfo<'info>,              // Bob
-    mint_of_token_being_sent_a: Account<'info, Mint>,  // USDC
-    mint_of_token_being_sent_b: Account<'info, Mint>,  // ETH
-    // Alice's USDC wallet that has already approved the escrow wallet
-    // #[account(
-    //     mut,
-    //     constraint=wallet_to_withdraw_from.owner == user_sending.key(),
-    //     constraint=wallet_to_withdraw_from.mint == mint_of_token_being_sent.key()
-    // )]
-    // wallet_to_withdraw_from: Account<'info, TokenAccount>,
+    owner: Signer<'info>,                               // Alice
+    mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+    mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
 
     // Application level accounts
     system_program: Program<'info, System>,
@@ -184,20 +171,14 @@ pub struct CreateLiquidityPool<'info> {
 #[derive(Default)]
 pub struct Pool {
     
-    // tokenA in the pool
-    token_a: Pubkey,
-    
-    // tokenB in the pool
-    token_b: Pubkey,
+    // pool wallet token b
+    pool_wallet_a: Pubkey,
+
+    // pool wallet token a
+    pool_wallet_b: Pubkey,
     
     // a * b = k
-    k_constant: u64,
-
-    // token a dispositors
-    token_a_depositors: Vec<Pubkey>,
-
-    // token b dispositors
-    token_b_depositors: Vec<Pubkey>,
+    k_constant: u64
 }
 
 #[derive(Accounts)]
