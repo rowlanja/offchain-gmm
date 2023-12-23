@@ -61,8 +61,8 @@ describe("onchain-gmm-contracts", () => {
     let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
     const amount = new anchor.BN(20000000);
 
-    const [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
-    const [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+    let [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
+    let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
 
     console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
     console.log("Creator Balance Token B : " + aliceBalancePretokenB)
@@ -84,6 +84,12 @@ describe("onchain-gmm-contracts", () => {
       }
     )
     .rpc();
+
+    [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
+    [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+
+    console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
+    console.log("Creator Balance Token B : " + aliceBalancePretokenB)
   });
 
   it("deposits liquidity into pool!", async () => {
