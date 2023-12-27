@@ -60,6 +60,14 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
+    const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('user_stake'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
     // let poolKey = anchor.web3.Keypair.generate()
     // const amount = new anchor.BN(20000000);
 
@@ -73,6 +81,7 @@ describe("onchain-gmm-contracts", () => {
       user: alice.publicKey,
       poolState: poolStatePDA,
       poolWalletTokenA: poolWalletTokenPDA,
+      stakeRecord: userStakePDA,
       userWalletTokenA: aliceWallet,
       mintOfTokenBeingSentA: mintAddress,
       tokenProgram: spl.TOKEN_PROGRAM_ID

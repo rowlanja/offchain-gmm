@@ -24,9 +24,6 @@ pub mod onchain_gmm_contracts {
         let inner = vec![
             b"state".as_ref(),
             binding.as_ref(),
-            // ctx.accounts.user_wallet_token_b.key().as_ref(),
-            // mint_of_token_being_sent_pk_a.as_ref(), 
-            // application_idx_bytes.as_ref (),
         ];
         let outer = vec![inner.as_slice()];
 
@@ -45,6 +42,8 @@ pub mod onchain_gmm_contracts {
         );
 
         anchor_spl::token::transfer(cpi_ctx, 100)?;
+
+        // Time to save the deposit in PDA 
 
         Ok(())
     }
@@ -199,6 +198,15 @@ pub struct CreateLiquidityPool<'info> {
     // )]
     // pool_wallet_token_b: Account<'info, TokenAccount>,
 
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"user_stake".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+        space = 8 + 2 + 32 + 32 + 8,
+        bump,
+    )]
+    pub stake_record: Account<'info, Deposit>,
+
     // Alice's USDC wallet that has already approved the escrow wallet
     #[account(mut)]
     pub user_wallet_token_a: Account<'info, TokenAccount>,
@@ -211,19 +219,12 @@ pub struct CreateLiquidityPool<'info> {
     // )]
     // user_wallet_token_b: Account<'info, TokenAccount>,
 
-    mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+    pub mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
     // mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
 
     // Application level accounts
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct UserStats {
-    level: u16,
-    name: String,
-    bump: u8,
 }
 
 // 1 State account instance == 1 Safe Pay instance
@@ -270,20 +271,7 @@ pub struct State {
 #[account]
 pub struct Deposit {
     amount: u16,
-    bump: u8
-}
-
-// validation struct
-#[derive(Accounts)]
-pub struct CreateUserStats<'info> {
-    #[account(mut)]
-    pub user: Signer<'info>,
-    // space: 8 discriminator + 2 level + 4 name length + 200 name + 1 bump
-    #[account(
-        init,
-        payer = user,
-        space = 8 + 2 + 4 + 200 + 1, seeds = [b"user-stats", user.key().as_ref()], bump
-    )]
-    pub user_stats: Account<'info, UserStats>,
-    pub system_program: Program<'info, System>,
+    depositor: Pubkey,
+    mint_of_token_deposited: Pubkey,
+    timestamp: i64,
 }
