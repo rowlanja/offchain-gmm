@@ -24,99 +24,97 @@ describe("onchain-gmm-contracts", () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.OnchainGmmContracts as Program<OnchainGmmContracts>;
+  let mintAddress: anchor.web3.PublicKey;
+  let alice: anchor.web3.Keypair;
+  let aliceWallet: anchor.web3.PublicKey;
+  let bob: anchor.web3.Keypair;
+
   let pda: PDAParameters;
 
-  it("Is initialized!", async () => {
-    // Add your test here.
+  beforeEach(async () => {
+    mintAddress = await createMint(provider.connection);
+    [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
 
-    const [depositPDA, _] = await PublicKey
-      .findProgramAddress(
-        [
-          anchor.utils.bytes.utf8.encode("deposit"),
-          provider.wallet.publicKey.toBuffer()
-        ],
-        program.programId
-      );
+    let _rest;
+    [bob, ..._rest] = await createUserAndAssociatedWallet(provider.connection);
 
-    const tx = await program.methods
-      .initialize()
-      .accounts({
-        user: provider.wallet.publicKey,
-        deposit: depositPDA,
-      })
-      .rpc();
-    console.log("Your transaction signature", tx);
+    pda = await getPdaParams(provider.connection, alice.publicKey, bob.publicKey, mintAddress);
+});
 
-    expect((await program.account.deposit.fetch(depositPDA)).amount).to.equal(0);
-  });
 
   it("creates liquidity pool!", async () => {
-    // Add your test here.
-    const mintAddressTokenA = await createMint(provider.connection);
-    const mintAddressTokenB = await createMint(provider.connection);
-    const [alice, aliceWalletTokenA] = await createUserAndAssociatedWallet(provider.connection, mintAddressTokenA);
-    const aliceWalletTokenB = await createAssociatedWallet(provider.connection, alice, mintAddressTokenA);
 
-    let poolKey = anchor.web3.Keypair.generate()
-    let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
-    const amount = new anchor.BN(20000000);
-
-    let [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
-    let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
-
-    console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
-    console.log("Creator Balance Token B : " + aliceBalancePretokenB)
-
-    pda = await getPdaParams(provider.connection, alice.publicKey, poolKey.publicKey, mintAddressTokenA);
-
-    await program.methods.createPool().accounts(
-      {
-        owner: aliceWalletTokenA,
-        pool: pda.stateKey,
-        poolWalletTokenA: pda.escrowWalletTokenAKey,
-        poolWalletTokenB: pda.escrowWalletTokenBKey,
-        userWalletTokenA: aliceWalletTokenA,
-        userWalletTokenB: aliceWalletTokenB,
-        mintOfTokenBeingSentA: mintAddressTokenA,
-        mintOfTokenBeingSentB: mintAddressTokenB,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-      }
+    const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('user-stats'),
+        alice.publicKey.toBuffer(),
+      ],
+      program.programId
     )
-    .rpc();
 
-    [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
-    [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+    const [poolWalletTokenPDA, walletBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
 
+    // let poolKey = anchor.web3.Keypair.generate()
+    // const amount = new anchor.BN(20000000);
+
+    let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
-    console.log("Creator Balance Token B : " + aliceBalancePretokenB)
+
+    // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+    await program.methods
+    .createPool()
+    .accounts({
+      user: alice.publicKey,
+      poolState: poolStatePDA,
+      poolWalletTokenA: poolWalletTokenPDA,
+      userWalletTokenA: aliceWallet,
+      mintOfTokenBeingSentA: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc()
+
+    const [, poolBalancePreTokenA] = await readAccount(poolWalletTokenPDA, provider);
+    console.log("Pool Balance Token A : " + poolBalancePreTokenA)
+
+    // [, aliceBalancePreTokenA] = await readAccount(aliceWalletTokenA, provider);
+    // [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+
+    // console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
+    // console.log("Creator Balance Token B : " + aliceBalancePretokenB)
   });
 
-  it("deposits liquidity into pool!", async () => {
-    // Add your test here.
-    const mintAddress = await createMint(provider.connection);
-    const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-    let poolKey = anchor.web3.Keypair.generate()
-    let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
-    const amount = new anchor.BN(20000000);
+  // it("deposits liquidity into pool!", async () => {
+  //   // Add your test here.
+  //   const mintAddress = await createMint(provider.connection);
+  //   const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
+  //   let poolKey = anchor.web3.Keypair.generate()
+  //   let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
+  //   const amount = new anchor.BN(20000000);
 
-    const [, aliceBalancePre] = await readAccount(aliceWallet, provider);
+  //   const [, aliceBalancePre] = await readAccount(aliceWallet, provider);
 
-    console.log("Balance : " + aliceBalancePre)
+  //   console.log("Balance : " + aliceBalancePre)
 
-    await program.methods.depositLiquidity(amount).accounts(
-      {
-        userWalletTokenA: aliceWallet,
-        // poolWalletTokenB: poolKey.publicKey,
-        // userSending: alice.publicKey,
-        // mintOfTokenBeingSentA: mintObject.publicKey,
-        // mintOfTokenBeingSentB: mintObject.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-      }
-    )
-    .rpc();
-  });
+  //   await program.methods.depositLiquidity(amount).accounts(
+  //     {
+  //       userWalletTokenA: aliceWallet,
+  //       // poolWalletTokenB: poolKey.publicKey,
+  //       // userSending: alice.publicKey,
+  //       // mintOfTokenBeingSentA: mintObject.publicKey,
+  //       // mintOfTokenBeingSentB: mintObject.publicKey,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //       tokenProgram: spl.TOKEN_PROGRAM_ID,
+  //     }
+  //   )
+  //   .rpc();
+  // });
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {
     const user = new anchor.web3.Keypair();
@@ -164,18 +162,18 @@ describe("onchain-gmm-contracts", () => {
     return [user, userAssociatedTokenAccount];
   }
 
-  const createAssociatedWallet = async (connection: anchor.web3.Connection, user: anchor.web3.Keypair, mint?: anchor.web3.PublicKey): Promise<anchor.web3.PublicKey> => {
+  const createAssociatedWallet = async (connection: anchor.web3.Connection, user: anchor.web3.PublicKey, mint?: anchor.web3.PublicKey): Promise<anchor.web3.PublicKey> => {
     let userAssociatedTokenAccount: anchor.web3.PublicKey | undefined = undefined;
 
     // Fund user with some SOL
     let txFund = new anchor.web3.Transaction();
     txFund.add(anchor.web3.SystemProgram.transfer({
         fromPubkey: provider.wallet.publicKey,
-        toPubkey: user.publicKey,
+        toPubkey: user,
         lamports: 5 * anchor.web3.LAMPORTS_PER_SOL,
     }));
     const sigTxFund = await provider.sendAndConfirm(txFund);
-    console.log(`[${user.publicKey.toBase58()}] Funded new account with 5 SOL: ${sigTxFund}`);
+    console.log(`[${user.toBase58()}] Funded new account with 5 SOL: ${sigTxFund}`);
 
     if (mint) {
         // Create a token account for the user and mint some tokens
@@ -183,7 +181,7 @@ describe("onchain-gmm-contracts", () => {
             spl.ASSOCIATED_TOKEN_PROGRAM_ID,
             spl.TOKEN_PROGRAM_ID,
             mint,
-            user.publicKey
+            user
         )
 
         const txFundTokenAccount = new anchor.web3.Transaction();
@@ -192,8 +190,8 @@ describe("onchain-gmm-contracts", () => {
             spl.TOKEN_PROGRAM_ID,
             mint,
             userAssociatedTokenAccount,
-            user.publicKey,
-            user.publicKey,
+            user,
+            user,
         ))
         txFundTokenAccount.add(spl.Token.createMintToInstruction(
             spl.TOKEN_PROGRAM_ID,
@@ -203,7 +201,7 @@ describe("onchain-gmm-contracts", () => {
             [],
             1337000000,
         ));
-        const txFundTokenSig = await provider.sendAndConfirm(txFundTokenAccount, [user]);
+        const txFundTokenSig = await provider.sendAndConfirm(txFundTokenAccount);
         console.log(`[${userAssociatedTokenAccount.toBase58()}] New associated account for mint ${mint.toBase58()}: ${txFundTokenSig}`);
     }
     return userAssociatedTokenAccount;
@@ -254,7 +252,7 @@ describe("onchain-gmm-contracts", () => {
     const uidBuffer = uid.toBuffer('le', 8);
 
     let [statePubKey, stateBump] = await anchor.web3.PublicKey.findProgramAddress(
-        [Buffer.from("state"), alice.toBuffer(), bob.toBuffer(), mint.toBuffer(), uidBuffer], program.programId,
+        [anchor.utils.bytes.utf8.encode("state"), alice.toBuffer(), mint.toBuffer()], program.programId,
     );
     let [walletPubKeyTokenA, walletBumpTokenA] = await anchor.web3.PublicKey.findProgramAddress(
         [Buffer.from("wallet"), alice.toBuffer(), bob.toBuffer(), mint.toBuffer(), uidBuffer], program.programId,
@@ -274,3 +272,18 @@ describe("onchain-gmm-contracts", () => {
 }
 
 });
+
+export async function getAssociatedTokenAddress(
+  mint: PublicKey,
+  owner: PublicKey,
+  programId = spl.TOKEN_PROGRAM_ID,
+  associatedTokenProgramId = spl.ASSOCIATED_TOKEN_PROGRAM_ID
+): Promise<PublicKey> {
+
+  const [address] = await PublicKey.findProgramAddress(
+      [owner.toBuffer(), programId.toBuffer(), mint.toBuffer()],
+      associatedTokenProgramId
+  );
+
+  return address;
+}
