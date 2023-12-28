@@ -13,11 +13,9 @@ pub mod onchain_gmm_contracts {
     ) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
-
-        msg!("depositors balance [{}]", depositor_balance);
-
         let pool_balance = ctx.accounts.pool_wallet_token_a.amount;
 
+        msg!("depositors balance [{}]", depositor_balance);
         msg!("pools balance [{}]", pool_balance);
 
         let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
@@ -45,9 +43,13 @@ pub mod onchain_gmm_contracts {
         anchor_spl::token::transfer(cpi_ctx, 100)?;
 
         // Time to save the deposit in PDA 
-        let mut depositor_record =  ctx.accounts.stake_record.clone();
+        let depositor_record = &mut ctx.accounts.stake_record;
         depositor_record.amount = 100;
-        depositor_record.timestamp = clock::Clock::get().unwrap().unix_timestamp.try_into().unwrap();;
+        depositor_record.timestamp = clock::Clock::get()
+            .unwrap()
+            .unix_timestamp
+            .try_into()
+            .unwrap();
 
         Ok(())
     }
@@ -205,8 +207,8 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"user_stake".as_ref(), user.key().as_ref(), mint_of_token_being_sent_a.key().as_ref()],
-        space = 8 + 2 + 32 + 32 + 8,
+        seeds=[b"stake".as_ref(), user.key().as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+        space = 8 + 2 + 8,
         bump,
     )]
     pub stake_record: Account<'info, Deposit>,
@@ -275,6 +277,5 @@ pub struct State {
 #[account]
 pub struct Deposit {
     amount: u16,
-    depositor: Pubkey,
     timestamp: i64,
 }
