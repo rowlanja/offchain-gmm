@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{clock, log::sol_log};
 use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
 
 declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
@@ -44,6 +45,9 @@ pub mod onchain_gmm_contracts {
         anchor_spl::token::transfer(cpi_ctx, 100)?;
 
         // Time to save the deposit in PDA 
+        let mut depositor_record =  ctx.accounts.stake_record.clone();
+        depositor_record.amount = 100;
+        depositor_record.timestamp = clock::Clock::get().unwrap().unix_timestamp.try_into().unwrap();;
 
         Ok(())
     }
@@ -201,7 +205,7 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"user_stake".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+        seeds=[b"user_stake".as_ref(), user.key().as_ref(), mint_of_token_being_sent_a.key().as_ref()],
         space = 8 + 2 + 32 + 32 + 8,
         bump,
     )]
@@ -272,6 +276,5 @@ pub struct State {
 pub struct Deposit {
     amount: u16,
     depositor: Pubkey,
-    mint_of_token_deposited: Pubkey,
     timestamp: i64,
 }

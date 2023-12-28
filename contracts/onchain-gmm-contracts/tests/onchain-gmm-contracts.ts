@@ -63,6 +63,7 @@ describe("onchain-gmm-contracts", () => {
     const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('user_stake'),
+        alice.publicKey.toBuffer(),
         mintAddress.toBuffer()
       ],
       program.programId

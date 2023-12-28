@@ -19,5 +19,4 @@ verbose = []
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
-spl-token = "3.2.0"
 num_enum = "0.5.4"
