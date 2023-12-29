@@ -77,7 +77,7 @@ describe("onchain-gmm-contracts", () => {
 
     // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
     await program.methods
-    .createPool()
+    .createPool(1.1, 1.0, 0.5)
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,

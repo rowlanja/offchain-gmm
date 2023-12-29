@@ -9,7 +9,10 @@ pub mod onchain_gmm_contracts {
     use super::*;
 
     pub fn create_pool(
-        ctx: Context<CreateLiquidityPool>
+        ctx: Context<CreateLiquidityPool>,
+        lower_bound: f64,
+        upper_bound: f64,
+        fee_percent: f64,
     ) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
@@ -51,21 +54,25 @@ pub mod onchain_gmm_contracts {
             .try_into()
             .unwrap();
 
+        depositor_record.lower_bound = f64::from(lower_bound);
+        depositor_record.upper_bound = f64::from(upper_bound);
+        depositor_record.fee_percent = f64::from(fee_percent);
+
         Ok(())
     }
 
-    pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
-        // print balances
-        let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
-        // let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
+    // pub fn deposit_liquidity(ctx: Context<DepositLiquidity>, amount: u64) -> Result<()> {
+    //     // print balances
+    //     let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+    //     // let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
 
-        msg!("depositor balance [{}]", depositor_balance);
+    //     msg!("depositor balance [{}]", depositor_balance);
 
-        let pool = ctx.accounts.pool.clone();
-        let pool_token_a_balance = ctx.accounts.pool_wallet_token_a.amount;
-        let pool_token_b_balance = ctx.accounts.pool_wallet_token_b.amount;
-        println!("pool balance [{}]", pool_token_a_balance);
-        println!("pool balance [{}]", pool_token_b_balance);
+    //     let pool = ctx.accounts.pool.clone();
+    //     let pool_token_a_balance = ctx.accounts.pool_wallet_token_a.amount;
+    //     let pool_token_b_balance = ctx.accounts.pool_wallet_token_b.amount;
+    //     println!("pool balance [{}]", pool_token_a_balance);
+    //     println!("pool balance [{}]", pool_token_b_balance);
         // load pool state
         // let pool = &mut ctx.accounts.application_state;
 
@@ -112,64 +119,64 @@ pub mod onchain_gmm_contracts {
         // let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
         // let pool_balance = ctx.accounts.pool_wallet_token_b.amount;
 
-        msg!("deposit balance [{}]", depositor_balance);
-        // println!("pool balance [{}]", pool_balance);
-        Ok(())
-    }
+//         msg!("deposit balance [{}]", depositor_balance);
+//         // println!("pool balance [{}]", pool_balance);
+//         Ok(())
+//     }
 }
 
-#[derive(Accounts)]
-pub struct DepositLiquidity<'info> {
-    //  Derived PDAs
-    #[account(
-        mut,
-        seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
-        bump,
-    )]
-    pool: Account<'info, Pool>,
+// #[derive(Accounts)]
+// pub struct DepositLiquidity<'info> {
+//     //  Derived PDAs
+//     #[account(
+//         mut,
+//         seeds=[b"state".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+//         bump,
+//     )]
+//     pool: Account<'info, Pool>,
 
-    #[account(
-        mut,
-        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
-        bump
-    )]
-    pool_wallet_token_a: Account<'info, TokenAccount>,
+//     #[account(
+//         mut,
+//         seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+//         bump
+//     )]
+//     pool_wallet_token_a: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref()],
-        bump
-    )]
-    pool_wallet_token_b: Account<'info, TokenAccount>,
+//     #[account(
+//         mut,
+//         seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref()],
+//         bump
+//     )]
+//     pool_wallet_token_b: Account<'info, TokenAccount>,
     
-    #[account(mut)]
-    depositor: Signer<'info>,                     // Alice
+//     #[account(mut)]
+//     depositor: Signer<'info>,                     // Alice
    
-    // Alice's USDC wallet that has already approved the escrow wallet
-    #[account(
-        mut,
-        constraint=user_wallet_token_a.owner == depositor.key(),
-        constraint=user_wallet_token_a.mint == mint_of_token_being_sent_a.key()
-    )]
-    user_wallet_token_a: Account<'info, TokenAccount>,
+//     // Alice's USDC wallet that has already approved the escrow wallet
+//     #[account(
+//         mut,
+//         constraint=user_wallet_token_a.owner == depositor.key(),
+//         constraint=user_wallet_token_a.mint == mint_of_token_being_sent_a.key()
+//     )]
+//     user_wallet_token_a: Account<'info, TokenAccount>,
 
-    // Alice's USDC wallet that has already approved the escrow wallet
-    #[account(
-            mut,
-            constraint=user_wallet_token_b.owner == depositor.key(),
-            constraint=user_wallet_token_b.mint == mint_of_token_being_sent_b.key()
-    )]
-    user_wallet_token_b: Account<'info, TokenAccount>,
+//     // Alice's USDC wallet that has already approved the escrow wallet
+//     #[account(
+//             mut,
+//             constraint=user_wallet_token_b.owner == depositor.key(),
+//             constraint=user_wallet_token_b.mint == mint_of_token_being_sent_b.key()
+//     )]
+//     user_wallet_token_b: Account<'info, TokenAccount>,
 
-    mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
-    mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
+//     mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+//     mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
 
 
-    // // Application level accounts
-    system_program: Program<'info, System>,
-    token_program: Program<'info, Token>,
-    // rent: Sysvar<'info, Rent>,
-}
+//     // // Application level accounts
+//     system_program: Program<'info, System>,
+//     token_program: Program<'info, Token>,
+//     // rent: Sysvar<'info, Rent>,
+// }
 
 #[derive(Accounts)]
 pub struct CreateLiquidityPool<'info> {
@@ -208,7 +215,7 @@ pub struct CreateLiquidityPool<'info> {
         init,
         payer = user,
         seeds=[b"stake".as_ref(), user.key().as_ref(), mint_of_token_being_sent_a.key().as_ref()],
-        space = 8 + 2 + 8,
+        space = 8 + 2 + 8 + 8 + 8 + 8,
         bump,
     )]
     pub stake_record: Account<'info, Deposit>,
@@ -226,6 +233,7 @@ pub struct CreateLiquidityPool<'info> {
     // user_wallet_token_b: Account<'info, TokenAccount>,
 
     pub mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+
     // mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
 
     // Application level accounts
@@ -233,7 +241,6 @@ pub struct CreateLiquidityPool<'info> {
     system_program: Program<'info, System>,
 }
 
-// 1 State account instance == 1 Safe Pay instance
 #[account]
 pub struct Pool {
     
@@ -247,7 +254,6 @@ pub struct Pool {
     k_constant: u64
 }
 
-// 1 State account instance == 1 Safe Pay instance
 #[account]
 #[derive(Default)]
 pub struct State {
@@ -278,4 +284,7 @@ pub struct State {
 pub struct Deposit {
     amount: u16,
     timestamp: i64,
+    lower_bound: f64,
+    upper_bound: f64,
+    fee_percent: f64
 }
