@@ -91,7 +91,8 @@ pub mod onchain_gmm_contracts {
 
     pub fn swap(
         ctx: Context<Swap>,
-        token_a_amount: u64
+        token_amount: u64,
+        token_pubkey: Pubkey
     ) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
@@ -113,11 +114,23 @@ pub mod onchain_gmm_contracts {
         let token_b_pool_size = ctx.accounts.pool_wallet_token_b.amount;
 
         // WE NEED LOGIC TO DETERMIN SWAP FOR TOKEN(a) or TOKEN(b) [for now hardcode b] 
-        let new_token_a_pool_size = token_a_pool_size + token_a_amount; 
-        let new_token_b_pool_size = k_constant / new_token_a_pool_size; 
-        let price = token_b_pool_size - new_token_b_pool_size;
+        if token_pubkey == ctx.accounts.mint_of_token_being_sent_a.key().clone() {
+            let new_token_a_pool_size = token_a_pool_size + token_amount; 
+            let new_token_b_pool_size = k_constant / new_token_a_pool_size; 
+            let price = token_b_pool_size - new_token_b_pool_size;
+    
+            msg!("[TOKEN A PRICE] : k constant [{}] price [{}]", k_constant, price);
+        } else if token_pubkey == ctx.accounts.mint_of_token_being_sent_b.key().clone() {
+            let new_token_b_pool_size = token_b_pool_size + token_amount; 
+            let new_token_a_pool_size = k_constant / new_token_b_pool_size; 
+            let price = token_a_pool_size - new_token_a_pool_size;
+    
+            msg!("[TOKEN B PRICE] : k constant [{}] price [{}]", k_constant, price);
+        } else {
+            msg!("incorrect token pubkey");
 
-        msg!("k constant [{}] price [{}]", k_constant, price);
+        }
+
         // TRANSFER TOKEN A to POOL
 
         // check provider has enough of token account a

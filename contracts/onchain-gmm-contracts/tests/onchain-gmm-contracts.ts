@@ -122,7 +122,7 @@ describe("onchain-gmm-contracts", () => {
     let tokenAPurchaseAmount = new anchor.BN(1);
 
     await program.methods
-    .swap(tokenAPurchaseAmount)
+    .swap(tokenAPurchaseAmount, mintAddress)
     .accounts({
       user: alice.publicKey,
       pool: poolStatePDA,
