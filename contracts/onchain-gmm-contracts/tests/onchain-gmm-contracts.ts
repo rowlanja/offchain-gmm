@@ -46,8 +46,9 @@ describe("onchain-gmm-contracts", () => {
 
     const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('user-stats'),
-        alice.publicKey.toBuffer(),
+        anchor.utils.bytes.utf8.encode('pool'),
+        mintAddress.toBuffer(),
+        mintAddress.toBuffer(),
       ],
       program.programId
     )

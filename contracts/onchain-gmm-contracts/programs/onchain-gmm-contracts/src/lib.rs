@@ -69,6 +69,9 @@ pub mod onchain_gmm_contracts {
 
         // Time to create the pool in PDA 
         let pool = &mut ctx.accounts.pool_state;
+        pool.pool_wallet_a = ctx.accounts.user_wallet_token_a.key();
+        pool.pool_wallet_b = ctx.accounts.user_wallet_token_b.key();
+        pool.k_constant = token_a_amount * token_b_amount;
         
         // Time to save the deposit in PDA 
         let deposit = &mut ctx.accounts.stake_record;
@@ -82,6 +85,82 @@ pub mod onchain_gmm_contracts {
         deposit.lower_bound = f64::from(lower_bound);
         deposit.upper_bound = f64::from(upper_bound);
         deposit.fee_percent = f64::from(fee_percent);
+
+        Ok(())
+    }
+
+    pub fn swap(
+        ctx: Context<Swap>
+    ) -> Result<()> {
+        // print balances
+        // let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+        // let pool_balance = ctx.accounts.pool_wallet_token_a.amount;
+
+        // msg!("depositors balance [{}]", depositor_balance);
+        // msg!("pools balance [{}]", pool_balance);
+
+        // let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_a.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
+
+        // // TRANSFER TOKEN A
+
+        // // check provider has enough of token account a
+        // // move lp token account a to pool token account a
+        // // Below is the actual instruction that we are going to send to the Token program.
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_a.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_a.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+
+        // anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
+
+        // // TRANSFER TOKEN B
+
+        // // check provider has enough of token account b
+        // // move lp token account a to pool token account b
+        // // Below is the actual instruction that we are going to send to the Token program.
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_b.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+
+        // anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
+
+        // // Time to create the pool in PDA 
+        // let pool = &mut ctx.accounts.pool_state;
+        // pool.pool_wallet_a = ctx.accounts.user_wallet_token_a;
+        // pool.pool_wallet_b = ctx.accounts.user_wallet_token_b;
+        // pool.k_constant = token_a_amount * token_b_amount;
+        
+        // // Time to save the deposit in PDA 
+        // let deposit = &mut ctx.accounts.stake_record;
+        // deposit.amount = 100;
+        // deposit.timestamp = clock::Clock::get()
+        //     .unwrap()
+        //     .unix_timestamp
+        //     .try_into()
+        //     .unwrap();
+
+        // deposit.lower_bound = f64::from(lower_bound);
+        // deposit.upper_bound = f64::from(upper_bound);
+        // deposit.fee_percent = f64::from(fee_percent);
 
         Ok(())
     }
@@ -212,7 +291,13 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 2 + 4 + 200 + 1, seeds = [b"user-stats", user.key().as_ref()], bump
+        space = 8 + 2 + 4 + 200 + 1,
+        seeds = [
+            b"pool",
+            mint_of_token_being_sent_a.key().as_ref(),
+            mint_of_token_being_sent_b.key().as_ref(),
+        ],
+        bump
     )]
     pub pool_state: Account<'info, Pool>,
 
@@ -244,6 +329,59 @@ pub struct CreateLiquidityPool<'info> {
         bump,
     )]
     pub stake_record: Account<'info, Deposit>,
+
+    // Alice's USDC wallet that has already approved the escrow wallet
+    #[account(mut)]
+    pub user_wallet_token_a: Account<'info, TokenAccount>,
+
+    // Alice's USDC wallet that has already approved the escrow wallet
+    #[account(mut)]
+    pub user_wallet_token_b: Account<'info, TokenAccount>,
+
+    // // Alice's USDC wallet that has already approved the escrow wallet
+    // #[account(
+    //         mut,
+    //         constraint=user_wallet_token_b.owner == owner.key(),
+    //         constraint=user_wallet_token_b.mint == mint_of_token_being_sent_b.key()
+    // )]
+    // user_wallet_token_b: Account<'info, TokenAccount>,
+
+    pub mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
+    pub mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
+
+    // Application level accounts
+    token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Swap<'info> {
+    // Users and accounts in the system
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"pool",
+            mint_of_token_being_sent_a.key().as_ref(),
+            mint_of_token_being_sent_b.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub pool: Account<'info, Pool>,
+
+    #[account(
+        seeds=[b"pool_wallet_token_a".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
+        bump,
+    )]
+    pub pool_wallet_token_a: Account<'info, TokenAccount>,
+
+    #[account(
+        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref()],
+        bump,
+    )]
+    pub pool_wallet_token_b: Account<'info, TokenAccount>,
 
     // Alice's USDC wallet that has already approved the escrow wallet
     #[account(mut)]
