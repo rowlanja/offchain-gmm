@@ -52,9 +52,17 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
-    const [poolWalletTokenPDA, walletBump] = await PublicKey.findProgramAddress(
+    const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
         mintAddress.toBuffer()
       ],
       program.programId
@@ -73,28 +81,37 @@ describe("onchain-gmm-contracts", () => {
     // const amount = new anchor.BN(20000000);
 
     let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
+    console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
 
     // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+    let tokenADepositAmount = new anchor.BN(100);
+    let tokenBDepositAmount = new anchor.BN(200);
+
     await program.methods
-    .createPool(1.1, 1.0, 0.5)
+    .createPool(1.1, 1.0, 0.5, tokenADepositAmount, tokenBDepositAmount)
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,
-      poolWalletTokenA: poolWalletTokenPDA,
+      poolWalletTokenA: poolWalletTokenAPDA,
+      poolWalletTokenB: poolWalletTokenBPDA,
       stakeRecord: userStakePDA,
       userWalletTokenA: aliceWallet,
+      userWalletTokenB: aliceWallet,
       mintOfTokenBeingSentA: mintAddress,
+      mintOfTokenBeingSentB: mintAddress,
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
     .signers([alice])
     .rpc();
 
     [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    console.log("Creator Balance Token A : " + aliceBalancePreTokenA)
+    console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
 
-    const [, poolBalancePreTokenA] = await readAccount(poolWalletTokenPDA, provider);
-    console.log("Pool Balance Token A : " + poolBalancePreTokenA)
+    let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
     const state = await program.account.deposit.fetch(userStakePDA);
     console.log("amount : " + state.amount.toString());

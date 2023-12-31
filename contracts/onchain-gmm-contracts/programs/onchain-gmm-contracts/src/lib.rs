@@ -13,6 +13,8 @@ pub mod onchain_gmm_contracts {
         lower_bound: f64,
         upper_bound: f64,
         fee_percent: f64,
+        token_a_amount: u64,
+        token_b_amount: u64,
     ) -> Result<()> {
         // print balances
         let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
@@ -29,7 +31,9 @@ pub mod onchain_gmm_contracts {
         ];
         let outer = vec![inner.as_slice()];
 
-        // check provider has enough of token account b
+        // TRANSFER TOKEN A
+
+        // check provider has enough of token account a
         // move lp token account a to pool token account a
         // Below is the actual instruction that we are going to send to the Token program.
         let transfer_instruction = Transfer{
@@ -43,20 +47,41 @@ pub mod onchain_gmm_contracts {
             outer.as_slice(),
         );
 
-        anchor_spl::token::transfer(cpi_ctx, 100)?;
+        anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
 
+        // TRANSFER TOKEN B
+
+        // check provider has enough of token account b
+        // move lp token account a to pool token account b
+        // Below is the actual instruction that we are going to send to the Token program.
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_b.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
+
+        // Time to create the pool in PDA 
+        let pool = &mut ctx.accounts.pool_state;
+        
         // Time to save the deposit in PDA 
-        let depositor_record = &mut ctx.accounts.stake_record;
-        depositor_record.amount = 100;
-        depositor_record.timestamp = clock::Clock::get()
+        let deposit = &mut ctx.accounts.stake_record;
+        deposit.amount = 100;
+        deposit.timestamp = clock::Clock::get()
             .unwrap()
             .unix_timestamp
             .try_into()
             .unwrap();
 
-        depositor_record.lower_bound = f64::from(lower_bound);
-        depositor_record.upper_bound = f64::from(upper_bound);
-        depositor_record.fee_percent = f64::from(fee_percent);
+        deposit.lower_bound = f64::from(lower_bound);
+        deposit.upper_bound = f64::from(upper_bound);
+        deposit.fee_percent = f64::from(fee_percent);
 
         Ok(())
     }
@@ -201,15 +226,15 @@ pub struct CreateLiquidityPool<'info> {
     )]
     pub pool_wallet_token_a: Account<'info, TokenAccount>,
 
-    // #[account(
-    //     init,
-    //     payer = owner,
-    //     seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_a.key().as_ref()],
-    //     bump,
-    //     token::mint=mint_of_token_being_sent_b,
-    //     token::authority=pool,
-    // )]
-    // pool_wallet_token_b: Account<'info, TokenAccount>,
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"pool_wallet_token_b".as_ref(), mint_of_token_being_sent_b.key().as_ref()],
+        bump,
+        token::mint=mint_of_token_being_sent_b,
+        token::authority=pool_state,
+    )]
+    pub pool_wallet_token_b: Account<'info, TokenAccount>,
 
     #[account(
         init,
@@ -224,6 +249,10 @@ pub struct CreateLiquidityPool<'info> {
     #[account(mut)]
     pub user_wallet_token_a: Account<'info, TokenAccount>,
 
+    // Alice's USDC wallet that has already approved the escrow wallet
+    #[account(mut)]
+    pub user_wallet_token_b: Account<'info, TokenAccount>,
+
     // // Alice's USDC wallet that has already approved the escrow wallet
     // #[account(
     //         mut,
@@ -233,8 +262,7 @@ pub struct CreateLiquidityPool<'info> {
     // user_wallet_token_b: Account<'info, TokenAccount>,
 
     pub mint_of_token_being_sent_a: Account<'info, Mint>,   // USDC
-
-    // mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
+    pub mint_of_token_being_sent_b: Account<'info, Mint>,   // ETH
 
     // Application level accounts
     token_program: Program<'info, Token>,
