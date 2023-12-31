@@ -46,9 +46,8 @@ describe("onchain-gmm-contracts", () => {
 
     const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('pool'),
-        mintAddress.toBuffer(),
-        mintAddress.toBuffer(),
+        anchor.utils.bytes.utf8.encode('user-stats'),
+        alice.publicKey.toBuffer(),
       ],
       program.programId
     )
@@ -117,6 +116,26 @@ describe("onchain-gmm-contracts", () => {
     const state = await program.account.deposit.fetch(userStakePDA);
     console.log("amount : " + state.amount.toString());
     console.log("timestamp : " + state.timestamp.toString());
+
+    console.log("TIME TO SWAP ");
+
+    let tokenAPurchaseAmount = new anchor.BN(1);
+
+    await program.methods
+    .swap(tokenAPurchaseAmount)
+    .accounts({
+      user: alice.publicKey,
+      pool: poolStatePDA,
+      poolWalletTokenA: poolWalletTokenAPDA,
+      poolWalletTokenB: poolWalletTokenBPDA,
+      userWalletTokenA: aliceWallet,
+      userWalletTokenB: aliceWallet,
+      mintOfTokenBeingSentA: mintAddress,
+      mintOfTokenBeingSentB: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
   });
 
   // it("deposits liquidity into pool!", async () => {

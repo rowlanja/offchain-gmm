@@ -90,28 +90,39 @@ pub mod onchain_gmm_contracts {
     }
 
     pub fn swap(
-        ctx: Context<Swap>
+        ctx: Context<Swap>,
+        token_a_amount: u64
     ) -> Result<()> {
         // print balances
-        // let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
-        // let pool_balance = ctx.accounts.pool_wallet_token_a.amount;
+        let depositor_balance = ctx.accounts.user_wallet_token_a.amount;
+        let pool_balance = ctx.accounts.pool_wallet_token_a.amount;
 
-        // msg!("depositors balance [{}]", depositor_balance);
-        // msg!("pools balance [{}]", pool_balance);
+        msg!("depositors balance [{}]", depositor_balance);
+        msg!("pools balance [{}]", pool_balance);
+        let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
+        let binding = ctx.accounts.user_wallet_token_a.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
 
-        // let mint_of_token_being_sent_pk_a = ctx.accounts.mint_of_token_being_sent_a.key().clone();
-        // let binding = ctx.accounts.user_wallet_token_a.key();
-        // let inner = vec![
-        //     b"state".as_ref(),
-        //     binding.as_ref(),
-        // ];
-        // let outer = vec![inner.as_slice()];
+        // CALCULATE PRICE
+        let k_constant = ctx.accounts.pool.k_constant;
+        let token_a_pool_size = ctx.accounts.pool_wallet_token_a.amount;
+        let token_b_pool_size = ctx.accounts.pool_wallet_token_b.amount;
 
-        // // TRANSFER TOKEN A
+        // WE NEED LOGIC TO DETERMIN SWAP FOR TOKEN(a) or TOKEN(b) [for now hardcode b] 
+        let new_token_a_pool_size = token_a_pool_size + token_a_amount; 
+        let new_token_b_pool_size = k_constant / new_token_a_pool_size; 
+        let price = token_b_pool_size - new_token_b_pool_size;
 
-        // // check provider has enough of token account a
-        // // move lp token account a to pool token account a
-        // // Below is the actual instruction that we are going to send to the Token program.
+        msg!("k constant [{}] price [{}]", k_constant, price);
+        // TRANSFER TOKEN A to POOL
+
+        // check provider has enough of token account a
+        // move lp token account a to pool token account a
+        // Below is the actual instruction that we are going to send to the Token program.
         // let transfer_instruction = Transfer{
         //     from: ctx.accounts.user_wallet_token_a.to_account_info(),
         //     to: ctx.accounts.pool_wallet_token_a.to_account_info(),
@@ -125,11 +136,11 @@ pub mod onchain_gmm_contracts {
 
         // anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
 
-        // // TRANSFER TOKEN B
+        // TRANSFER TOKEN B to USER
 
-        // // check provider has enough of token account b
-        // // move lp token account a to pool token account b
-        // // Below is the actual instruction that we are going to send to the Token program.
+        // check provider has enough of token account b
+        // move lp token account a to pool token account b
+        // Below is the actual instruction that we are going to send to the Token program.
         // let transfer_instruction = Transfer{
         //     from: ctx.accounts.user_wallet_token_b.to_account_info(),
         //     to: ctx.accounts.pool_wallet_token_b.to_account_info(),
@@ -292,11 +303,7 @@ pub struct CreateLiquidityPool<'info> {
         init,
         payer = user,
         space = 8 + 2 + 4 + 200 + 1,
-        seeds = [
-            b"pool",
-            mint_of_token_being_sent_a.key().as_ref(),
-            mint_of_token_being_sent_b.key().as_ref(),
-        ],
+        seeds = [b"user-stats", user.key().as_ref()],
         bump
     )]
     pub pool_state: Account<'info, Pool>,
@@ -362,11 +369,7 @@ pub struct Swap<'info> {
 
     #[account(
         mut,
-        seeds = [
-            b"pool",
-            mint_of_token_being_sent_a.key().as_ref(),
-            mint_of_token_being_sent_b.key().as_ref(),
-        ],
+        seeds = [b"user-stats", user.key().as_ref()],
         bump,
     )]
     pub pool: Account<'info, Pool>,
