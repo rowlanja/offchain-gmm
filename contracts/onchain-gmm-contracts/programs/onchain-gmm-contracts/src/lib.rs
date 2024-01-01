@@ -437,8 +437,8 @@ pub struct Pool {
 }
 
 #[account]
-#[derive(Default)]
-pub struct State {
+#[derive(Default)] 
+pub struct State { 
 
     // A primary key that allows us to derive other important accounts
     idx: u64,
