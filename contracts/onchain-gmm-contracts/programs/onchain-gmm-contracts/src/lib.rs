@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{clock, log::sol_log};
 use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
 
+use std::num::Float;
+
 declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
 #[program]
@@ -471,9 +473,17 @@ pub struct Deposit {
     fee_percent: f64
 }
 
-pub fn create_concentrated_pool(
-    ctx: Context<CreateConcentrateLiquidityPool>,
+// read https://uniswapv3book.com/milestone_1/calculating-liquidity.html
+
+pub fn create_position_concentrated_pool(
+    ctx: Context<CreatePositionConcentrateLiquidityPool>,
+    lower_price_bound: u64,
+    upper_price_bound: u64,
+    current_price: u64 // this should be loaded from pool
 ) -> Result<()> {
+    let current_tick = (f64::from(current_price)).sqrt();
+    let upper_tick = (f64::from(upper_price_bound)).sqrt();
+    let lower_tick = (f64::from(lower_price_bound)).sqrt();
 
     Ok(())
 }
@@ -486,7 +496,7 @@ pub fn swap_concentrated_pool(
 }
 
 #[derive(Accounts)]
-pub struct CreateConcentrateLiquidityPool<'info> {
+pub struct CreatePositionConcentrateLiquidityPool<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
