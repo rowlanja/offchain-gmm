@@ -470,3 +470,40 @@ pub struct Deposit {
     upper_bound: f64,
     fee_percent: f64
 }
+
+pub fn create_concentrated_pool(
+    ctx: Context<CreateConcentrateLiquidityPool>,
+) -> Result<()> {
+
+    Ok(())
+}
+
+pub fn swap_concentrated_pool(
+    ctx: Context<SwapConcentratedLiquidityPool>,
+) -> Result<()> {
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct CreateConcentrateLiquidityPool<'info> {
+    // Users and accounts in the system
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    // Application level accounts
+    token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
+pub struct SwapConcentratedLiquidityPool<'info> {
+    // Users and accounts in the system
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    // Application level accounts
+    token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+}
