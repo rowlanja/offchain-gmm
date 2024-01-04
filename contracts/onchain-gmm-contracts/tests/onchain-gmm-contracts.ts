@@ -138,31 +138,28 @@ describe("onchain-gmm-contracts", () => {
     .rpc();
   });
 
-  // it("deposits liquidity into pool!", async () => {
-  //   // Add your test here.
-  //   const mintAddress = await createMint(provider.connection);
-  //   const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-  //   let poolKey = anchor.web3.Keypair.generate()
-  //   let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
-  //   const amount = new anchor.BN(20000000);
+  it("creates position in concentrated pool!", async () => {
+    // Add your test here.
+    const mintAddress = await createMint(provider.connection);
+    const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
+    const price = 5000.0;
+    const upper_bound = 5500.0;
+    const lower_bound = 4545.0;
 
-  //   const [, aliceBalancePre] = await readAccount(aliceWallet, provider);
-
-  //   console.log("Balance : " + aliceBalancePre)
-
-  //   await program.methods.depositLiquidity(amount).accounts(
-  //     {
-  //       userWalletTokenA: aliceWallet,
-  //       // poolWalletTokenB: poolKey.publicKey,
-  //       // userSending: alice.publicKey,
-  //       // mintOfTokenBeingSentA: mintObject.publicKey,
-  //       // mintOfTokenBeingSentB: mintObject.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //       tokenProgram: spl.TOKEN_PROGRAM_ID,
-  //     }
-  //   )
-  //   .rpc();
-  // });
+    await program.methods.createPositionConcentratedPool(price, upper_bound, lower_bound).accounts(
+      {
+        user: alice.publicKey,
+        // poolWalletTokenB: poolKey.publicKey,
+        // userSending: alice.publicKey,
+        // mintOfTokenBeingSentA: mintObject.publicKey,
+        // mintOfTokenBeingSentB: mintObject.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+      }
+    )
+    .signers([alice])
+    .rpc();
+  });
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {
     const user = new anchor.web3.Keypair();

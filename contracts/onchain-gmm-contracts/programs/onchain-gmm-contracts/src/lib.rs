@@ -2,8 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{clock, log::sol_log};
 use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
 
-use std::num::Float;
-
 declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
 #[program]
@@ -253,6 +251,49 @@ pub mod onchain_gmm_contracts {
 //         // println!("pool balance [{}]", pool_balance);
 //         Ok(())
 //     }
+// read https://uniswapv3book.com/milestone_1/calculating-liquidity.html
+
+
+    // pub fn price_to_sqrtp() -> f64 {
+    //     let q96: i64 = 2_i64.pow(96);
+
+    //     return q96;
+    // }
+
+    pub fn create_position_concentrated_pool(
+        ctx: Context<CreatePositionConcentrateLiquidityPool>,
+        current_price: f64, // this should be loaded from pool
+        upper_price_bound: f64,
+        lower_price_bound: f64
+    ) -> Result<()> {
+        // const Q96: U256 = U256([0, 4294967296, 0, 0]);
+        let current_tick = price_to_tick(current_price);
+        let upper_tick = price_to_tick(upper_price_bound);
+        let lower_tick = price_to_tick(lower_price_bound);
+        msg!("current tick : [{}] upper tick :  [{}] lower tick : [{}]", current_tick, upper_tick, lower_tick);
+        
+        // Last thing, we use Q64.96 to store sqrt(P)
+        
+    //    let q96: i64 = 2i64.pow(96);
+        let sqrtp_price: f64 = price_to_sqrtp(current_price);
+        msg!("current sqrtp_price : [{}] ", sqrtp_price);
+        Ok(())
+    }
+}
+
+
+fn price_to_sqrtp(price: f64) -> f64 {
+    price.sqrt() * get_q96()
+}
+
+pub fn get_q96() -> f64 {
+    const base: f64 = 2.;
+    msg!("get_q96 : [{}] ",  base.powf(96.));
+    base.powf(96.)
+}
+
+pub fn price_to_tick(price: f64) -> f64 {
+    return price.log(1.0001).floor();
 }
 
 // #[derive(Accounts)]
@@ -473,20 +514,6 @@ pub struct Deposit {
     fee_percent: f64
 }
 
-// read https://uniswapv3book.com/milestone_1/calculating-liquidity.html
-
-pub fn create_position_concentrated_pool(
-    ctx: Context<CreatePositionConcentrateLiquidityPool>,
-    lower_price_bound: u64,
-    upper_price_bound: u64,
-    current_price: u64 // this should be loaded from pool
-) -> Result<()> {
-    let current_tick = (f64::from(current_price)).sqrt();
-    let upper_tick = (f64::from(upper_price_bound)).sqrt();
-    let lower_tick = (f64::from(lower_price_bound)).sqrt();
-
-    Ok(())
-}
 
 pub fn swap_concentrated_pool(
     ctx: Context<SwapConcentratedLiquidityPool>,
