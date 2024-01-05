@@ -260,7 +260,7 @@ pub mod onchain_gmm_contracts {
     //     return q96;
     // }
 
-    pub fn create_position_concentrated_pool(
+    pub fn swap_concentrated_pool(
         ctx: Context<CreatePositionConcentrateLiquidityPool>,
         current_price: f64, // this should be loaded from pool
         upper_price_bound: f64,
@@ -279,6 +279,34 @@ pub mod onchain_gmm_contracts {
         msg!("current sqrtp_price : [{}] ", sqrtp_price);
         Ok(())
     }
+
+    pub fn create_position_concentrated_pool(
+        ctx: Context<CreatePositionConcentrateLiquidityPool>,
+        lower_tick: i64,
+        upper_tick: i64,
+        amount: u64,
+    ) -> Result<()> {
+        let lower_tick = &mut ctx.accounts.lower_tick;
+        let upper_tick = &mut ctx.accounts.upper_tick;
+        updateTick(lower_tick, amount);
+        updateTick(upper_tick, amount);
+
+        let position = &mut ctx.accounts.position;
+        let liquidityBefore = position.liquidity;
+        let liquidityAfter = liquidityBefore + amount as u128;
+    
+        position.liquidity = liquidityAfter;
+        Ok(())
+    }
+}
+
+fn updateTick(tick: &mut Tick, amount: u64) {
+    let liquidityBefore = tick.liquidity;
+    let liquidityAfter = tick.liquidity + amount as u128;
+    if liquidityBefore == 0 {    
+        tick.initialized = true;
+    }
+    tick.liquidity = liquidityAfter;
 }
 
 
@@ -514,19 +542,53 @@ pub struct Deposit {
     fee_percent: f64
 }
 
+#[account]
+pub struct Tick {
+    initialized: bool,
+    liquidity: u128
+}
 
-pub fn swap_concentrated_pool(
-    ctx: Context<SwapConcentratedLiquidityPool>,
-) -> Result<()> {
-
-    Ok(())
+#[account]
+pub struct Position {
+    liquidity: u128,
 }
 
 #[derive(Accounts)]
+#[instruction(lower_tick_id: u64, upper_tick_id: u64)]
 pub struct CreatePositionConcentrateLiquidityPool<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), lower_tick_id.to_string().as_ref()],
+        bump,
+        space = 8 + 1 + 16
+    )]
+    pub lower_tick: Account<'info, Tick>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), upper_tick_id.to_string().as_ref()],
+        bump,
+        space = 8 + 1 + 16
+    )]
+    pub upper_tick: Account<'info, Tick>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"clamm_position".as_ref(), token0.key().as_ref(), token1.key().as_ref(), lower_tick_id.to_string().as_ref(), upper_tick_id.to_string().as_ref()],
+        bump,
+        space = 8 + 16
+    )]
+    pub position: Account<'info, Position>,
+
+    pub token0: Account<'info, Mint>,   // USDC
+    pub token1: Account<'info, Mint>,   // ETH
 
     // Application level accounts
     token_program: Program<'info, Token>,
@@ -543,4 +605,46 @@ pub struct SwapConcentratedLiquidityPool<'info> {
     // Application level accounts
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CreateConcentrateLiquidityPool<'info> {
+    // Users and accounts in the system
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    pub token0: Account<'info, Mint>,   // USDC
+    pub token1: Account<'info, Mint>,   // ETH
+
+    // Application level accounts
+    token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+}
+
+
+
+#[account]
+#[derive(Default)] 
+pub struct ConcentratedPool { 
+
+    // A primary key that allows us to derive other important accounts
+    idx: u64,
+    
+    // Alice
+    user_sending: Pubkey,
+
+    // Bob
+    user_receiving: Pubkey,
+
+    token0: Pubkey,
+    token1: Pubkey,
+
+    // The escrow wallet
+    escrow_wallet: Pubkey,
+
+    // The amount of tokens Alice wants to send to Bob
+    amount_tokens: u64,
+
+    // An enumm that is to represent some kind of state machine
+    stage: u8,
 }
