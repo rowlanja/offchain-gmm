@@ -142,13 +142,52 @@ describe("onchain-gmm-contracts", () => {
     // Add your test here.
     const mintAddress = await createMint(provider.connection);
     const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-    const price = 5000.0;
+    const price = 5000;
     const upper_bound = 5500.0;
     const lower_bound = 4545.0;
+    const amount = new anchor.BN(1);
+    const token_max_a = new anchor.BN(1);
+    const token_max_b = new anchor.BN(5000);
 
-    await program.methods.createPositionConcentratedPool(price, upper_bound, lower_bound).accounts(
+    const lower_tick_id = new anchor.BN(10);
+    const upper_tick_id = new anchor.BN(20);
+
+    const [lowerTick, lowerTickBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('clamm'),
+        mintAddress.toBuffer(),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [position, positionBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('clamm_position'),
+        mintAddress.toBuffer(),
+        mintAddress.toBuffer(),
+        lower_tick_id.toBuffer(),
+        upper_tick_id.toBuffer()
+      ],
+      program.programId
+    )
+
+    await program.methods.createPositionConcentratedPool(
+      lower_tick_id,
+      upper_tick_id,
+      lower_bound,
+      upper_bound,
+      amount,
+      token_max_a,
+      token_max_b
+      ).accounts(
       {
         user: alice.publicKey,
+        token0: mintAddress,
+        token1: mintAddress,
+        lowerTick: lowerTick,
+        upperTick: lowerTick,
+        position: position,
         // poolWalletTokenB: poolKey.publicKey,
         // userSending: alice.publicKey,
         // mintOfTokenBeingSentA: mintObject.publicKey,

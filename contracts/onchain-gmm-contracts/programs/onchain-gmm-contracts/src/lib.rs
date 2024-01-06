@@ -2,10 +2,17 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{clock, log::sol_log};
 use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
 
+pub mod errors;
+
+pub mod math;
+
+use math::*;
+
 declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
 #[program]
 pub mod onchain_gmm_contracts {
+
     use super::*;
 
     pub fn create_pool(
@@ -282,21 +289,38 @@ pub mod onchain_gmm_contracts {
 
     pub fn create_position_concentrated_pool(
         ctx: Context<CreatePositionConcentrateLiquidityPool>,
-        lower_tick: i64,
-        upper_tick: i64,
+        lower_tick_id: u64, 
+        upper_tick_id: u64,
+        lower_price: f64,
+        upper_price: f64,
         amount: u64,
+        token_max_a: u64,
+        token_max_b: u64
     ) -> Result<()> {
-        let lower_tick = &mut ctx.accounts.lower_tick;
-        let upper_tick = &mut ctx.accounts.upper_tick;
-        updateTick(lower_tick, amount);
-        updateTick(upper_tick, amount);
+        // let lower_tick = &mut ctx.accounts.lower_tick;
+        // let upper_tick = &mut ctx.accounts.upper_tick;
+        // updateTick(lower_tick, amount);
+        // updateTick(upper_tick, amount);
+        let upper_tick = price_to_tick(upper_price);
+        let lower_tick = price_to_tick(lower_price);
 
         let position = &mut ctx.accounts.position;
         let liquidityBefore = position.liquidity;
         let liquidityAfter = liquidityBefore + amount as u128;
     
         position.liquidity = liquidityAfter;
+
+        // check liquidity delta 
+        // let liquidity_delta = convert_to_liquidity_delta(amount as u128, true)?;
         Ok(())
+    }
+}
+
+pub fn increasing_price_order(sqrt_price_0: u128, sqrt_price_1: u128) -> (u128, u128) {
+    if sqrt_price_0 > sqrt_price_1 {
+        (sqrt_price_1, sqrt_price_0)
+    } else {
+        (sqrt_price_0, sqrt_price_1)
     }
 }
 
@@ -554,16 +578,27 @@ pub struct Position {
 }
 
 #[derive(Accounts)]
-#[instruction(lower_tick_id: u64, upper_tick_id: u64)]
+#[instruction(
+    lower_tick_id: u64,
+    upper_tick_id: u64,
+    lower_price: f64,
+    upper_price: f64,
+    amount: u64,
+    token_max_a: u64,
+    token_max_b: u64
+)]
 pub struct CreatePositionConcentrateLiquidityPool<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
 
+    pub token0: Account<'info, Mint>,   // USDC
+    pub token1: Account<'info, Mint>,   // ETH
+
     #[account(
         init,
         payer = user,
-        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), lower_tick_id.to_string().as_ref()],
+        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref()],
         bump,
         space = 8 + 1 + 16
     )]
@@ -587,8 +622,6 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
     )]
     pub position: Account<'info, Position>,
 
-    pub token0: Account<'info, Mint>,   // USDC
-    pub token1: Account<'info, Mint>,   // ETH
 
     // Application level accounts
     token_program: Program<'info, Token>,
