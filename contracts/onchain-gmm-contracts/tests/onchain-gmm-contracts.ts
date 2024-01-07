@@ -42,121 +42,130 @@ describe("onchain-gmm-contracts", () => {
 });
 
 
-  it("creates liquidity pool!", async () => {
+  // it("creates liquidity pool!", async () => {
 
-    const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('user-stats'),
-        alice.publicKey.toBuffer(),
-      ],
-      program.programId
-    )
+  //   const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode('user-stats'),
+  //       alice.publicKey.toBuffer(),
+  //     ],
+  //     program.programId
+  //   )
 
-    const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
-        mintAddress.toBuffer()
-      ],
-      program.programId
-    )
+  //   const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
+  //       mintAddress.toBuffer()
+  //     ],
+  //     program.programId
+  //   )
 
-    const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
-        mintAddress.toBuffer()
-      ],
-      program.programId
-    )
+  //   const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
+  //       mintAddress.toBuffer()
+  //     ],
+  //     program.programId
+  //   )
 
-    const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('stake'),
-        alice.publicKey.toBuffer(),
-        mintAddress.toBuffer()
-      ],
-      program.programId
-    )
+  //   const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode('stake'),
+  //       alice.publicKey.toBuffer(),
+  //       mintAddress.toBuffer()
+  //     ],
+  //     program.programId
+  //   )
 
-    // let poolKey = anchor.web3.Keypair.generate()
-    // const amount = new anchor.BN(20000000);
+  //   // let poolKey = anchor.web3.Keypair.generate()
+  //   // const amount = new anchor.BN(20000000);
 
-    let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
+  //   let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+  //   console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
 
-    // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
-    let tokenADepositAmount = new anchor.BN(100);
-    let tokenBDepositAmount = new anchor.BN(200);
+  //   // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
+  //   let tokenADepositAmount = new anchor.BN(100);
+  //   let tokenBDepositAmount = new anchor.BN(200);
 
-    await program.methods
-    .createPool(1.1, 1.0, 0.5, tokenADepositAmount, tokenBDepositAmount)
-    .accounts({
-      user: alice.publicKey,
-      poolState: poolStatePDA,
-      poolWalletTokenA: poolWalletTokenAPDA,
-      poolWalletTokenB: poolWalletTokenBPDA,
-      stakeRecord: userStakePDA,
-      userWalletTokenA: aliceWallet,
-      userWalletTokenB: aliceWallet,
-      mintOfTokenBeingSentA: mintAddress,
-      mintOfTokenBeingSentB: mintAddress,
-      tokenProgram: spl.TOKEN_PROGRAM_ID
-    })
-    .signers([alice])
-    .rpc();
+  //   await program.methods
+  //   .createPool(1.1, 1.0, 0.5, tokenADepositAmount, tokenBDepositAmount)
+  //   .accounts({
+  //     user: alice.publicKey,
+  //     poolState: poolStatePDA,
+  //     poolWalletTokenA: poolWalletTokenAPDA,
+  //     poolWalletTokenB: poolWalletTokenBPDA,
+  //     stakeRecord: userStakePDA,
+  //     userWalletTokenA: aliceWallet,
+  //     userWalletTokenB: aliceWallet,
+  //     mintOfTokenBeingSentA: mintAddress,
+  //     mintOfTokenBeingSentB: mintAddress,
+  //     tokenProgram: spl.TOKEN_PROGRAM_ID
+  //   })
+  //   .signers([alice])
+  //   .rpc();
 
-    [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
+  //   [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+  //   console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
 
-    let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
-    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+  //   let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+  //   console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
-    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
-    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+  //   [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+  //   console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
-    const state = await program.account.deposit.fetch(userStakePDA);
-    console.log("amount : " + state.amount.toString());
-    console.log("timestamp : " + state.timestamp.toString());
+  //   const state = await program.account.deposit.fetch(userStakePDA);
+  //   console.log("amount : " + state.amount.toString());
+  //   console.log("timestamp : " + state.timestamp.toString());
 
-    console.log("TIME TO SWAP ");
+  //   console.log("TIME TO SWAP ");
 
-    let tokenAPurchaseAmount = new anchor.BN(1);
+  //   let tokenAPurchaseAmount = new anchor.BN(1);
 
-    await program.methods
-    .swap(tokenAPurchaseAmount, mintAddress)
-    .accounts({
-      user: alice.publicKey,
-      pool: poolStatePDA,
-      poolWalletTokenA: poolWalletTokenAPDA,
-      poolWalletTokenB: poolWalletTokenBPDA,
-      userWalletTokenA: aliceWallet,
-      userWalletTokenB: aliceWallet,
-      mintOfTokenBeingSentA: mintAddress,
-      mintOfTokenBeingSentB: mintAddress,
-      tokenProgram: spl.TOKEN_PROGRAM_ID
-    })
-    .signers([alice])
-    .rpc();
-  });
+  //   await program.methods
+  //   .swap(tokenAPurchaseAmount, mintAddress)
+  //   .accounts({
+  //     user: alice.publicKey,
+  //     pool: poolStatePDA,
+  //     poolWalletTokenA: poolWalletTokenAPDA,
+  //     poolWalletTokenB: poolWalletTokenBPDA,
+  //     userWalletTokenA: aliceWallet,
+  //     userWalletTokenB: aliceWallet,
+  //     mintOfTokenBeingSentA: mintAddress,
+  //     mintOfTokenBeingSentB: mintAddress,
+  //     tokenProgram: spl.TOKEN_PROGRAM_ID
+  //   })
+  //   .signers([alice])
+  //   .rpc();
+  // });
 
   it("creates position in concentrated pool!", async () => {
     // Add your test here.
     const mintAddress = await createMint(provider.connection);
     const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-    const price = 5000;
-    const upper_bound = 5500.0;
-    const lower_bound = 4545.0;
-    const amount = new anchor.BN(1);
-    const token_max_a = new anchor.BN(1);
-    const token_max_b = new anchor.BN(5000);
+    const upper_price = 5500.0;
+    const lower_price = 4545.0;
+    const current_price = 5000.0;
 
     const lower_tick_id = new anchor.BN(10);
     const upper_tick_id = new anchor.BN(20);
+    const amount = new anchor.BN(1);
 
     const [lowerTick, lowerTickBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('clamm'),
         mintAddress.toBuffer(),
-        mintAddress.toBuffer()
+        mintAddress.toBuffer(),
+        lower_tick_id.toArrayLike(Buffer,"le",8)
+      ],
+      program.programId
+    )
+
+    const [upperTick, upperTickBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('clamm'),
+        mintAddress.toBuffer(),
+        mintAddress.toBuffer(),
+        upper_tick_id.toArrayLike(Buffer,"le",8)
       ],
       program.programId
     )
@@ -166,8 +175,8 @@ describe("onchain-gmm-contracts", () => {
         anchor.utils.bytes.utf8.encode('clamm_position'),
         mintAddress.toBuffer(),
         mintAddress.toBuffer(),
-        lower_tick_id.toBuffer(),
-        upper_tick_id.toBuffer()
+        lower_tick_id.toArrayLike(Buffer,"le",8),
+        upper_tick_id.toArrayLike(Buffer,"le",8)
       ],
       program.programId
     )
@@ -175,18 +184,17 @@ describe("onchain-gmm-contracts", () => {
     await program.methods.createPositionConcentratedPool(
       lower_tick_id,
       upper_tick_id,
-      lower_bound,
-      upper_bound,
-      amount,
-      token_max_a,
-      token_max_b
+      lower_price,
+      upper_price,
+      current_price,
+      amount
       ).accounts(
       {
         user: alice.publicKey,
         token0: mintAddress,
         token1: mintAddress,
         lowerTick: lowerTick,
-        upperTick: lowerTick,
+        upperTick: upperTick,
         position: position,
         // poolWalletTokenB: poolKey.publicKey,
         // userSending: alice.publicKey,

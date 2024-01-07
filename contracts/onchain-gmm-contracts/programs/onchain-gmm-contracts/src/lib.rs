@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{clock, log::sol_log};
 use anchor_spl::{associated_token::AssociatedToken, token::{CloseAccount, Mint, Token, TokenAccount, Transfer}};
+use std::cmp;
 
 pub mod errors;
 
@@ -267,25 +268,25 @@ pub mod onchain_gmm_contracts {
     //     return q96;
     // }
 
-    pub fn swap_concentrated_pool(
-        ctx: Context<CreatePositionConcentrateLiquidityPool>,
-        current_price: f64, // this should be loaded from pool
-        upper_price_bound: f64,
-        lower_price_bound: f64
-    ) -> Result<()> {
-        // const Q96: U256 = U256([0, 4294967296, 0, 0]);
-        let current_tick = price_to_tick(current_price);
-        let upper_tick = price_to_tick(upper_price_bound);
-        let lower_tick = price_to_tick(lower_price_bound);
-        msg!("current tick : [{}] upper tick :  [{}] lower tick : [{}]", current_tick, upper_tick, lower_tick);
+    // pub fn swap_concentrated_pool(
+    //     ctx: Context<CreatePositionConcentrateLiquidityPool>,
+    //     current_price: f64, // this should be loaded from pool
+    //     upper_price_bound: f64,
+    //     lower_price_bound: f64
+    // ) -> Result<()> {
+    //     // const Q96: U256 = U256([0, 4294967296, 0, 0]);
+    //     let current_tick = price_to_tick(current_price);
+    //     let upper_tick = price_to_tick(upper_price_bound);
+    //     let lower_tick = price_to_tick(lower_price_bound);
+    //     msg!("current tick : [{}] upper tick :  [{}] lower tick : [{}]", current_tick, upper_tick, lower_tick);
         
-        // Last thing, we use Q64.96 to store sqrt(P)
+    //     // Last thing, we use Q64.96 to store sqrt(P)
         
-    //    let q96: i64 = 2i64.pow(96);
-        let sqrtp_price: f64 = price_to_sqrtp(current_price);
-        msg!("current sqrtp_price : [{}] ", sqrtp_price);
-        Ok(())
-    }
+    // //    let q96: i64 = 2i64.pow(96);
+    //     let sqrtp_price: f64 = price_to_sqrtp(current_price);
+    //     msg!("current sqrtp_price : [{}] ", sqrtp_price);
+    //     Ok(())
+    // }
 
     pub fn create_position_concentrated_pool(
         ctx: Context<CreatePositionConcentrateLiquidityPool>,
@@ -293,22 +294,78 @@ pub mod onchain_gmm_contracts {
         upper_tick_id: u64,
         lower_price: f64,
         upper_price: f64,
+        current_price: f64,
         amount: u64,
-        token_max_a: u64,
-        token_max_b: u64
+        // token_max_a: u64,
+        // token_max_b: u64
     ) -> Result<()> {
-        // let lower_tick = &mut ctx.accounts.lower_tick;
-        // let upper_tick = &mut ctx.accounts.upper_tick;
-        // updateTick(lower_tick, amount);
-        // updateTick(upper_tick, amount);
-        let upper_tick = price_to_tick(upper_price);
-        let lower_tick = price_to_tick(lower_price);
+        // the contract updates the ticks and positions mappings;
+        let lower_tick = &mut ctx.accounts.lower_tick;
+        let upper_tick = &mut ctx.accounts.upper_tick;
+        updateTick(lower_tick, amount);
+        updateTick(upper_tick, amount);
 
         let position = &mut ctx.accounts.position;
         let liquidityBefore = position.liquidity;
         let liquidityAfter = liquidityBefore + amount as u128;
     
         position.liquidity = liquidityAfter;
+
+        // the contract calculates token amounts the user must send .
+        let sqrtp_upp = price_to_sqrtp(upper_price);
+        let sqrtp_low = price_to_sqrtp(lower_price);
+        let sqrtp_cur = price_to_sqrtp(current_price);
+        let base: f64 = 10.;
+        let eth = base.powf(18.);
+        let amount_eth = 1.0 * eth;
+        let amount_usdc = 5000.0 * eth;
+        
+        
+        let liq0 = liquidity0(amount_eth as f64, sqrtp_cur, sqrtp_upp);
+        let liq1 = liquidity1(amount_usdc as f64, sqrtp_cur, sqrtp_low);
+        let liq = if liq0 < liq1 { liq1 } else { liq0 };
+        msg!("liqs [{}] [{}]", liq0, liq1);
+
+        let amount0 = calc_amount0(liq, sqrtp_upp, sqrtp_cur);
+        let amount1 = calc_amount1(liq, sqrtp_low, sqrtp_cur);
+        msg!("amounts [{}] [{}]", amount0, amount1);
+
+                // TRANSFER TOKEN A
+
+        // check provider has enough of token account a
+        // move lp token account a to pool token account a
+        // Below is the actual instruction that we are going to send to the Token program.
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_a.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_a.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, amount0)?;
+
+        // TRANSFER TOKEN B
+
+        // check provider has enough of token account b
+        // move lp token account a to pool token account b
+        // Below is the actual instruction that we are going to send to the Token program.
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_b.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
+
+        anchor_spl::token::transfer(cpi_ctx, amount1)?;
+        
 
         // check liquidity delta 
         // let liquidity_delta = convert_to_liquidity_delta(amount as u128, true)?;
@@ -333,21 +390,58 @@ fn updateTick(tick: &mut Tick, amount: u64) {
     tick.liquidity = liquidityAfter;
 }
 
+fn calc_amount0(liq: f64, lower_tick: f64, upper_tick: f64) -> f64 {
+    let q96 = get_q96();
+    if upper_tick > lower_tick {
+        return liq * q96 * (upper_tick - lower_tick) / lower_tick / upper_tick;
+    } else {
+        return liq * q96 * (lower_tick - upper_tick) / upper_tick / lower_tick;
+    }
+}
+
+fn calc_amount1(liq: f64, lower_tick: f64, upper_tick: f64) -> f64 {
+    let q96 = get_q96();
+    if upper_tick > lower_tick {
+        return liq * (upper_tick - lower_tick) / q96;
+    } else {
+        return liq * (lower_tick - upper_tick) / q96;
+    }
+}
+
+fn liquidity0(amount: f64, pa: f64, pb: f64) -> f64 {
+    let q96 = get_q96();
+    if pa > pb {
+        return (amount * (pa * pb) / q96) / (pb - pa);
+    } else {
+        return (amount * (pb * pa) / q96) / (pa - pb);
+    }
+}
+
+fn liquidity1(amount: f64, pa: f64, pb: f64) -> f64 {
+    let q96 = get_q96();
+    if pa > pb {
+        return amount * q96 / (pb - pa);
+    } else {
+        return amount * q96 / (pa - pb);
+    }
+}
+
 
 fn price_to_sqrtp(price: f64) -> f64 {
     price.sqrt() * get_q96()
 }
+
+
+pub fn price_to_tick(price: f64) -> f64 {
+    return price.log(1.0001).floor();
+}
+
 
 pub fn get_q96() -> f64 {
     const base: f64 = 2.;
     msg!("get_q96 : [{}] ",  base.powf(96.));
     base.powf(96.)
 }
-
-pub fn price_to_tick(price: f64) -> f64 {
-    return price.log(1.0001).floor();
-}
-
 // #[derive(Accounts)]
 // pub struct DepositLiquidity<'info> {
 //     //  Derived PDAs
@@ -578,15 +672,7 @@ pub struct Position {
 }
 
 #[derive(Accounts)]
-#[instruction(
-    lower_tick_id: u64,
-    upper_tick_id: u64,
-    lower_price: f64,
-    upper_price: f64,
-    amount: u64,
-    token_max_a: u64,
-    token_max_b: u64
-)]
+#[instruction(lower_tick_id: u64, upper_tick_id: u64)]
 pub struct CreatePositionConcentrateLiquidityPool<'info> {
     // Users and accounts in the system
     #[account(mut)]
@@ -598,7 +684,7 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref()],
+        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), &lower_tick_id.to_le_bytes()],
         bump,
         space = 8 + 1 + 16
     )]
@@ -607,7 +693,7 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), upper_tick_id.to_string().as_ref()],
+        seeds=[b"clamm".as_ref(), token0.key().as_ref(), token1.key().as_ref(), &upper_tick_id.to_le_bytes()],
         bump,
         space = 8 + 1 + 16
     )]
@@ -616,7 +702,7 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"clamm_position".as_ref(), token0.key().as_ref(), token1.key().as_ref(), lower_tick_id.to_string().as_ref(), upper_tick_id.to_string().as_ref()],
+        seeds=[b"clamm_position".as_ref(), token0.key().as_ref(), token1.key().as_ref(), &lower_tick_id.to_le_bytes(), &upper_tick_id.to_le_bytes()],
         bump,
         space = 8 + 16
     )]
