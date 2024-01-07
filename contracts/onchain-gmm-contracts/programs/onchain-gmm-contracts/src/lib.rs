@@ -329,42 +329,41 @@ pub mod onchain_gmm_contracts {
         let amount0 = calc_amount0(liq, sqrtp_upp, sqrtp_cur);
         let amount1 = calc_amount1(liq, sqrtp_low, sqrtp_cur);
         msg!("amounts [{}] [{}]", amount0, amount1);
+        
+        // the contract transfers token amounts to pool 
+        // let binding = ctx.accounts.user_wallet_token_a.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
+        // // transfer token0
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_a.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_a.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
 
-                // TRANSFER TOKEN A
+        // anchor_spl::token::transfer(cpi_ctx, amount0 as u64)?;
 
-        // check provider has enough of token account a
-        // move lp token account a to pool token account a
-        // Below is the actual instruction that we are going to send to the Token program.
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_a.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_a.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
+        // // transfer token1
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_b.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
 
-        anchor_spl::token::transfer(cpi_ctx, amount0)?;
-
-        // TRANSFER TOKEN B
-
-        // check provider has enough of token account b
-        // move lp token account a to pool token account b
-        // Below is the actual instruction that we are going to send to the Token program.
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_b.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
-
-        anchor_spl::token::transfer(cpi_ctx, amount1)?;
+        // anchor_spl::token::transfer(cpi_ctx, amount1 as u64)?;
         
 
         // check liquidity delta 
@@ -678,9 +677,6 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    pub token0: Account<'info, Mint>,   // USDC
-    pub token1: Account<'info, Mint>,   // ETH
-
     #[account(
         init,
         payer = user,
@@ -707,6 +703,37 @@ pub struct CreatePositionConcentrateLiquidityPool<'info> {
         space = 8 + 16
     )]
     pub position: Account<'info, Position>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"pool_wallet_token_a".as_ref(), token0.key().as_ref()],
+        bump,
+        token::mint=token0,
+        token::authority=user,
+    )]
+    pub pool_wallet_token_a: Account<'info, TokenAccount>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"pool_wallet_token_a".as_ref(), token0.key().as_ref()],
+        bump,
+        token::mint=token0,
+        token::authority=user,
+    )]
+    pub pool_wallet_token_b: Account<'info, TokenAccount>,
+
+    pub token0: Account<'info, Mint>,   // USDC
+    pub token1: Account<'info, Mint>,   // ETH
+    
+    // Alice's USDC wallet that has already approved the escrow wallet
+    #[account(mut)]
+    pub user_wallet_token_a: Account<'info, TokenAccount>,
+
+    // Alice's ETH wallet that has already approved the escrow wallet
+    #[account(mut)]
+    pub user_wallet_token_b: Account<'info, TokenAccount>,
 
 
     // Application level accounts

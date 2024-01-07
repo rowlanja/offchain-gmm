@@ -181,6 +181,30 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
+    const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('user-stats'),
+        alice.publicKey.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
     await program.methods.createPositionConcentratedPool(
       lower_tick_id,
       upper_tick_id,
@@ -191,11 +215,15 @@ describe("onchain-gmm-contracts", () => {
       ).accounts(
       {
         user: alice.publicKey,
-        token0: mintAddress,
-        token1: mintAddress,
         lowerTick: lowerTick,
         upperTick: upperTick,
         position: position,
+        poolWalletTokenA: poolWalletTokenAPDA,
+        poolWalletTokenB: poolWalletTokenAPDA,
+        token0: mintAddress,
+        token1: mintAddress,
+        userWalletTokenA: aliceWallet,
+        userWalletTokenB: aliceWallet,
         // poolWalletTokenB: poolKey.publicKey,
         // userSending: alice.publicKey,
         // mintOfTokenBeingSentA: mintObject.publicKey,
