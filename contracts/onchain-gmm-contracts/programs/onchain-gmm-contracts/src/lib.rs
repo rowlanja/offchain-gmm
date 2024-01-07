@@ -331,39 +331,39 @@ pub mod onchain_gmm_contracts {
         msg!("amounts [{}] [{}]", amount0, amount1);
         
         // the contract transfers token amounts to pool 
-        // let binding = ctx.accounts.user_wallet_token_a.key();
-        // let inner = vec![
-        //     b"state".as_ref(),
-        //     binding.as_ref(),
-        // ];
-        // let outer = vec![inner.as_slice()];
-        // // transfer token0
-        // let transfer_instruction = Transfer{
-        //     from: ctx.accounts.user_wallet_token_a.to_account_info(),
-        //     to: ctx.accounts.pool_wallet_token_a.to_account_info(),
-        //     authority: ctx.accounts.user.to_account_info(),
-        // };
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info(),
-        //     transfer_instruction,
-        //     outer.as_slice(),
-        // );
+        let binding = ctx.accounts.user_wallet_token_a.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
+        // transfer token0
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_a.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_a.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
 
-        // anchor_spl::token::transfer(cpi_ctx, amount0 as u64)?;
+        anchor_spl::token::transfer(cpi_ctx, amount0 as u64)?;
 
-        // // transfer token1
-        // let transfer_instruction = Transfer{
-        //     from: ctx.accounts.user_wallet_token_b.to_account_info(),
-        //     to: ctx.accounts.pool_wallet_token_b.to_account_info(),
-        //     authority: ctx.accounts.user.to_account_info(),
-        // };
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info(),
-        //     transfer_instruction,
-        //     outer.as_slice(),
-        // );
+        // transfer token1
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_b.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_b.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
 
-        // anchor_spl::token::transfer(cpi_ctx, amount1 as u64)?;
+        anchor_spl::token::transfer(cpi_ctx, amount1 as u64)?;
         
 
         // check liquidity delta 
