@@ -85,7 +85,7 @@ describe("onchain-gmm-contracts", () => {
     let tokenASwapAmount = new anchor.BN(5);
 
     await program.methods
-    .createPool(tokenADepositAmount, tokenBDepositAmount)
+    .createPool(tokenADepositAmount, tokenBDepositAmount, alice.publicKey)
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,
