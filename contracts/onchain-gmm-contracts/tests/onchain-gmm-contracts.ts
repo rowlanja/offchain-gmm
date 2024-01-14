@@ -46,7 +46,7 @@ describe("onchain-gmm-contracts", () => {
 
     const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('user-stats'),
+        anchor.utils.bytes.utf8.encode('pool-state'),
         alice.publicKey.toBuffer(),
       ],
       program.programId
@@ -54,7 +54,7 @@ describe("onchain-gmm-contracts", () => {
 
     const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_0'),
         mintAddress.toBuffer()
       ],
       program.programId
@@ -62,7 +62,7 @@ describe("onchain-gmm-contracts", () => {
 
     const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_1'),
         mintAddress.toBuffer()
       ],
       program.programId
@@ -70,35 +70,32 @@ describe("onchain-gmm-contracts", () => {
 
     const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('stake'),
+        anchor.utils.bytes.utf8.encode('position'),
         alice.publicKey.toBuffer(),
         mintAddress.toBuffer()
       ],
       program.programId
     )
 
-    // let poolKey = anchor.web3.Keypair.generate()
-    // const amount = new anchor.BN(20000000);
-
     let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
 
-    // let [, aliceBalancePretokenB] = await readAccount(aliceWalletTokenB, provider);
     let tokenADepositAmount = new anchor.BN(100);
     let tokenBDepositAmount = new anchor.BN(200);
+    let tokenASwapAmount = new anchor.BN(5);
 
     await program.methods
-    .createPool(1.1, 1.0, 0.5, tokenADepositAmount, tokenBDepositAmount)
+    .createPool(tokenADepositAmount, tokenBDepositAmount)
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,
-      poolWalletTokenA: poolWalletTokenAPDA,
-      poolWalletTokenB: poolWalletTokenBPDA,
-      stakeRecord: userStakePDA,
-      userWalletTokenA: aliceWallet,
-      userWalletTokenB: aliceWallet,
-      mintOfTokenBeingSentA: mintAddress,
-      mintOfTokenBeingSentB: mintAddress,
+      poolWalletToken0: poolWalletTokenAPDA,
+      poolWalletToken1: poolWalletTokenBPDA,
+      position: userStakePDA,
+      userWalletToken0: aliceWallet,
+      userWalletToken1: aliceWallet,
+      token0Mint: mintAddress,
+      token1Mint: mintAddress,
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
     .signers([alice])
@@ -113,56 +110,27 @@ describe("onchain-gmm-contracts", () => {
     [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
     console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
-    const state = await program.account.deposit.fetch(userStakePDA);
+    const state = await program.account.position.fetch(userStakePDA);
     console.log("amount : " + state.amount.toString());
     console.log("timestamp : " + state.timestamp.toString());
 
     console.log("TIME TO SWAP ");
-
-    let tokenAPurchaseAmount = new anchor.BN(1);
-
     await program.methods
-    .swap(tokenAPurchaseAmount, mintAddress)
+    .swap(tokenASwapAmount, true)
     .accounts({
       user: alice.publicKey,
       pool: poolStatePDA,
-      poolWalletTokenA: poolWalletTokenAPDA,
-      poolWalletTokenB: poolWalletTokenBPDA,
-      userWalletTokenA: aliceWallet,
-      userWalletTokenB: aliceWallet,
-      mintOfTokenBeingSentA: mintAddress,
-      mintOfTokenBeingSentB: mintAddress,
+      poolWalletToken0: poolWalletTokenAPDA,
+      poolWalletToken1: poolWalletTokenBPDA,
+      userWalletToken0: aliceWallet,
+      userWalletToken1: aliceWallet,
+      token0Mint: mintAddress,
+      token1Mint: mintAddress,
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
     .signers([alice])
     .rpc();
   });
-
-  // it("deposits liquidity into pool!", async () => {
-  //   // Add your test here.
-  //   const mintAddress = await createMint(provider.connection);
-  //   const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-  //   let poolKey = anchor.web3.Keypair.generate()
-  //   let mintObject = await utils.createMint(poolKey, provider, provider.wallet.publicKey, null, 9, TOKEN_PROGRAM_ID);
-  //   const amount = new anchor.BN(20000000);
-
-  //   const [, aliceBalancePre] = await readAccount(aliceWallet, provider);
-
-  //   console.log("Balance : " + aliceBalancePre)
-
-  //   await program.methods.depositLiquidity(amount).accounts(
-  //     {
-  //       userWalletTokenA: aliceWallet,
-  //       // poolWalletTokenB: poolKey.publicKey,
-  //       // userSending: alice.publicKey,
-  //       // mintOfTokenBeingSentA: mintObject.publicKey,
-  //       // mintOfTokenBeingSentB: mintObject.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //       tokenProgram: spl.TOKEN_PROGRAM_ID,
-  //     }
-  //   )
-  //   .rpc();
-  // });
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {
     const user = new anchor.web3.Keypair();
