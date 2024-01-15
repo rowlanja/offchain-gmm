@@ -204,7 +204,7 @@ pub mod onchain_gmm_contracts {
             transfer_instruction,
             outer.as_slice(),
         );
-
+        // APOLOGIES TO GOD FOR THIS CODE
         anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
         let stakers = &mut ctx.accounts.stakers_list.validators;
         let staker_len = stakers.len();
