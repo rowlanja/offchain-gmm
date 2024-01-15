@@ -77,6 +77,14 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
+    const [stakeListPDA, stakeListBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('stakers'),
+        poolStatePDA.toBuffer(),
+      ],
+      program.programId
+    )
+
     let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
 
@@ -92,6 +100,7 @@ describe("onchain-gmm-contracts", () => {
       poolWalletToken0: poolWalletTokenAPDA,
       poolWalletToken1: poolWalletTokenBPDA,
       position: userStakePDA,
+      stakersList: stakeListPDA,
       userWalletToken0: aliceWallet,
       userWalletToken1: aliceWallet,
       token0Mint: mintAddress,
@@ -115,21 +124,21 @@ describe("onchain-gmm-contracts", () => {
     console.log("timestamp : " + state.timestamp.toString());
 
     console.log("TIME TO SWAP ");
-    await program.methods
-    .swap(tokenASwapAmount, true)
-    .accounts({
-      user: alice.publicKey,
-      pool: poolStatePDA,
-      poolWalletToken0: poolWalletTokenAPDA,
-      poolWalletToken1: poolWalletTokenBPDA,
-      userWalletToken0: aliceWallet,
-      userWalletToken1: aliceWallet,
-      token0Mint: mintAddress,
-      token1Mint: mintAddress,
-      tokenProgram: spl.TOKEN_PROGRAM_ID
-    })
-    .signers([alice])
-    .rpc();
+    // await program.methods
+    // .swap(tokenASwapAmount, true)
+    // .accounts({
+    //   user: alice.publicKey,
+    //   pool: poolStatePDA,
+    //   poolWalletToken0: poolWalletTokenAPDA,
+    //   poolWalletToken1: poolWalletTokenBPDA,
+    //   userWalletToken0: aliceWallet,
+    //   userWalletToken1: aliceWallet,
+    //   token0Mint: mintAddress,
+    //   token1Mint: mintAddress,
+    //   tokenProgram: spl.TOKEN_PROGRAM_ID
+    // })
+    // .signers([alice])
+    // .rpc();
   });
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {

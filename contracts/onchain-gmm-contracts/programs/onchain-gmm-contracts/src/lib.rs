@@ -84,6 +84,8 @@ pub mod onchain_gmm_contracts {
         pool.token1 = ctx.accounts.user_wallet_token_1.key();
         pool.k_constant = token_a_amount * token_b_amount;
         pool.current_total_emissions = 0.0;
+        pool.total_staked_token0 += token_a_amount as f64;
+        pool.total_staked_token1 += token_b_amount as f64;
         
         // Time to save the deposit in PDA 
         let position = &mut ctx.accounts.position;
@@ -102,8 +104,10 @@ pub mod onchain_gmm_contracts {
 
         let stakers = &mut ctx.accounts.stakers_list.validators;
         stakers.push( ValidatorStakeInfo {
-            token_0_amount: token_a_amount,
-            token_1_amount: token_b_amount,
+            token_0_amount: token_a_amount as i64,
+            token_1_amount: token_b_amount as i64,
+            token_0_reward: 0.0,
+            token_1_reward: 0.0,
             timestamp,
             owner: pubkey_invoker
         });
@@ -112,7 +116,7 @@ pub mod onchain_gmm_contracts {
 
     pub fn swap(
         ctx: Context<Swap>,
-        token_amount: u64,
+        input_amount: u64,
         a_to_b: bool
     ) -> Result<()> {
         // print balances
@@ -128,83 +132,92 @@ pub mod onchain_gmm_contracts {
             b"state".as_ref(),
             binding.as_ref(),
         ];
-        let _outer = vec![inner.as_slice()];
+        let outer = vec![inner.as_slice()];
 
         // CALCULATE PRICE
         let k_constant = ctx.accounts.pool.k_constant;
         let token_a_pool_size = ctx.accounts.pool_wallet_token_0.amount;
         let token_b_pool_size = ctx.accounts.pool_wallet_token_1.amount;
-
         // WE NEED LOGIC TO DETERMIN SWAP FOR TOKEN(a) or TOKEN(b) [for now hardcode b] 
-        if !a_to_b {
-            let new_token_a_pool_size = token_a_pool_size + token_amount; 
-            let new_token_b_pool_size = k_constant / new_token_a_pool_size; 
-            let price = token_b_pool_size - new_token_b_pool_size;
-    
-            msg!("[SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, price);
+        let new_token_a_pool_size: u64;
+        let new_token_b_pool_size: u64;
+        let output_amount = if !a_to_b {
+            new_token_a_pool_size = token_a_pool_size + input_amount; 
+            new_token_b_pool_size = k_constant / new_token_a_pool_size; 
+            token_b_pool_size - new_token_b_pool_size
         } else {
-            let new_token_b_pool_size = token_b_pool_size + token_amount; 
-            let new_token_a_pool_size = k_constant / new_token_b_pool_size; 
-            let price = token_a_pool_size - new_token_a_pool_size;
-    
-            msg!("[SWAP] [TOKEN B SWAP] k constant [{}] price [{}]", k_constant, price);
-        }
+            new_token_b_pool_size = token_b_pool_size + input_amount; 
+            new_token_a_pool_size = k_constant / new_token_b_pool_size; 
+            token_a_pool_size - new_token_a_pool_size
+        };
+        msg!("[SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, output_amount);
+        const fee: f64 = 0.05;
+        const perc_to_swapper: f64 = 1.0 - fee;
+        let real_output: f64 = perc_to_swapper * output_amount as f64;
+        let fee_output: f64 = output_amount as f64 - real_output;
+        msg!("[SWAP] real output [{}] fee_output [{}] ", real_output, fee_output);
 
         // TRANSFER TOKEN A to POOL
 
         // check provider has enough of token account a
         // move lp token account a to pool token account a
         // Below is the actual instruction that we are going to send to the Token program.
-        // let transfer_instruction = Transfer{
-        //     from: ctx.accounts.user_wallet_token_a.to_account_info(),
-        //     to: ctx.accounts.pool_wallet_token_a.to_account_info(),
-        //     authority: ctx.accounts.user.to_account_info(),
-        // };
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info(),
-        //     transfer_instruction,
-        //     outer.as_slice(),
-        // );
+        let binding = ctx.accounts.user_wallet_token_0.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
+        
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.user_wallet_token_0.to_account_info(),
+            to: ctx.accounts.pool_wallet_token_0.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
 
-        // anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
+        anchor_spl::token::transfer(cpi_ctx, input_amount)?;
 
         // TRANSFER TOKEN B to USER
 
         // check provider has enough of token account b
         // move lp token account a to pool token account b
         // Below is the actual instruction that we are going to send to the Token program.
-        // let transfer_instruction = Transfer{
-        //     from: ctx.accounts.user_wallet_token_b.to_account_info(),
-        //     to: ctx.accounts.pool_wallet_token_b.to_account_info(),
-        //     authority: ctx.accounts.user.to_account_info(),
-        // };
-        // let cpi_ctx = CpiContext::new_with_signer(
-        //     ctx.accounts.token_program.to_account_info(),
-        //     transfer_instruction,
-        //     outer.as_slice(),
-        // );
-
-        // anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
-
-        // // Time to create the pool in PDA 
-        // let pool = &mut ctx.accounts.pool_state;
-        // pool.pool_wallet_a = ctx.accounts.user_wallet_token_a;
-        // pool.pool_wallet_b = ctx.accounts.user_wallet_token_b;
-        // pool.k_constant = token_a_amount * token_b_amount;
+        let binding = ctx.accounts.user_wallet_token_1.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
         
-        // // Time to save the deposit in PDA 
-        // let deposit = &mut ctx.accounts.stake_record;
-        // deposit.amount = 100;
-        // deposit.timestamp = clock::Clock::get()
-        //     .unwrap()
-        //     .unix_timestamp
-        //     .try_into()
-        //     .unwrap();
+        let transfer_instruction = Transfer{
+            from: ctx.accounts.pool_wallet_token_1.to_account_info(),
+            to: ctx.accounts.user_wallet_token_1.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
 
-        // deposit.lower_bound = f64::from(lower_bound);
-        // deposit.upper_bound = f64::from(upper_bound);
-        // deposit.fee_percent = f64::from(fee_percent);
-
+        anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
+        let stakers = &mut ctx.accounts.stakers_list.validators;
+        let staker_len = stakers.len();
+        let mut iter = &mut stakers.iter_mut();
+        // Time to update the stakers rewards 
+        while let Some(staker) = iter.next() {
+            msg!("staker vec[{}] [{}] [{}]", staker.owner, staker.token_0_amount, staker.token_1_amount);
+            if a_to_b {
+                staker.token_0_reward = (staker.token_0_amount / new_token_a_pool_size as i64 ) as f64 * fee_output;
+            } else { 
+                staker.token_1_reward = (staker.token_1_amount / new_token_b_pool_size as i64 ) as f64 * fee_output;
+            }
+        }
         Ok(())
     }
 }
@@ -215,7 +228,9 @@ pub struct Pool {
     token0: Pubkey,
     token1: Pubkey,
     k_constant: u64,
-    current_total_emissions: f64
+    current_total_emissions: f64,
+    total_staked_token0: f64,
+    total_staked_token1: f64
 }
 
 #[account]
@@ -234,7 +249,7 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 32 + 32 + 8 + 8,
+        space = 8 + 32 + 32 + 8 + 8 + 8 + 8,
         seeds = [b"pool-state", user.key().as_ref()],
         bump
     )]
@@ -272,8 +287,8 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"validators".as_ref(), pool_state.key().as_ref()],
-        space = 8000,
+        seeds=[b"stakers".as_ref(), pool_state.key().as_ref()],
+        space = 80000,
         bump,
     )]
     pub stakers_list:  Account<'info, ValidatorList>,
@@ -319,6 +334,13 @@ pub struct Swap<'info> {
     )]
     pub pool_wallet_token_1: Account<'info, TokenAccount>,
 
+    #[account(
+        mut,
+        seeds=[b"stakers".as_ref(), pool.key().as_ref()],
+        bump,
+    )]
+    pub stakers_list:  Account<'info, ValidatorList>,
+
     // Alice's USDC wallet that has already approved the escrow wallet
     #[account(mut)]
     pub user_wallet_token_0: Account<'info, TokenAccount>,
@@ -345,13 +367,15 @@ pub struct ValidatorList {
 }
 
 
-#[derive(Default)]
-#[account]
+#[derive(Default, BorshSerialize, BorshDeserialize)]
+#[zero_copy]
 pub struct ValidatorStakeInfo {
-    pub token_0_amount: u64,
-    pub token_1_amount: u64,
+    pub token_0_amount: i64,
+    pub token_1_amount: i64,
+    pub token_0_reward: f64,
+    pub token_1_reward: f64,
     pub owner: Pubkey,
-    pub timestamp: u64
+    pub timestamp: i64
 }
 
 impl ValidatorList {
