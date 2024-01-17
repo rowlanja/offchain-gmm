@@ -72,6 +72,7 @@ describe("onchain-gmm-contracts", () => {
       [
         anchor.utils.bytes.utf8.encode('position'),
         alice.publicKey.toBuffer(),
+        mintAddress.toBuffer(),
         mintAddress.toBuffer()
       ],
       program.programId
@@ -80,7 +81,7 @@ describe("onchain-gmm-contracts", () => {
     const [stakeListPDA, stakeListBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('stakers'),
-        poolStatePDA.toBuffer(),
+        poolStatePDA.toBuffer()
       ],
       program.programId
     )
@@ -97,31 +98,45 @@ describe("onchain-gmm-contracts", () => {
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,
-      poolWalletToken0: poolWalletTokenAPDA,
-      poolWalletToken1: poolWalletTokenBPDA,
-      position: userStakePDA,
       stakersList: stakeListPDA,
-      userWalletToken0: aliceWallet,
-      userWalletToken1: aliceWallet,
       token0Mint: mintAddress,
       token1Mint: mintAddress,
-      tokenProgram: spl.TOKEN_PROGRAM_ID
+      // tokenProgram: spl.TOKEN_PROGRAM_ID
     })
     .signers([alice])
     .rpc();
 
-    [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
+    
+    // await program.methods
+    // .createPool(tokenADepositAmount, tokenBDepositAmount, alice.publicKey)
+    // .accounts({
+    //   user: alice.publicKey,
+    //   poolState: poolStatePDA,
+    //   poolWalletToken0: poolWalletTokenAPDA,
+    //   poolWalletToken1: poolWalletTokenBPDA,
+    //   position: userStakePDA,
+    //   stakersList: stakeListPDA,
+    //   userWalletToken0: aliceWallet,
+    //   userWalletToken1: aliceWallet,
+    //   token0Mint: mintAddress,
+    //   token1Mint: mintAddress,
+    //   // tokenProgram: spl.TOKEN_PROGRAM_ID
+    // })
+    // .signers([alice])
+    // .rpc();
 
-    let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
-    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+    // [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+    // console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
 
-    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
-    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+    // let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    // console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
-    const state = await program.account.position.fetch(userStakePDA);
-    console.log("amount : " + state.amount.toString());
-    console.log("timestamp : " + state.timestamp.toString());
+    // [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    // console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+
+    // const state = await program.account.position.fetch(userStakePDA);
+    // console.log("amount : " + state.amount.toString());
+    // console.log("timestamp : " + state.timestamp.toString());
 
     console.log("TIME TO SWAP ");
     // await program.methods

@@ -24,93 +24,190 @@ pub mod onchain_gmm_contracts {
         pubkey_invoker: Pubkey
     ) -> Result<()> {
         // print balances
-        let depositor_balance = ctx.accounts.user_wallet_token_0.amount;
-        let pool_balance = ctx.accounts.pool_wallet_token_0.amount;
+        // let depositor_balance = ctx.accounts.user_wallet_token_0.amount;
+        // let pool_balance = ctx.accounts.pool_wallet_token_0.amount;
 
-        msg!("depositors balance [{}]", depositor_balance);
-        msg!("pools balance [{}]", pool_balance);
+        // msg!("depositors balance [{}]", depositor_balance);
+        // msg!("pools balance [{}]", pool_balance);
 
-        let _t0_mint = ctx.accounts.token0_mint.key().clone();
-        let binding = ctx.accounts.user_wallet_token_0.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+        // let _t0_mint = ctx.accounts.token0_mint.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_0.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
 
         // TRANSFER TOKEN A
 
         // check provider has enough of token account a
         // move lp token account a to pool token account a
         // Below is the actual instruction that we are going to send to the Token program.
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_0.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_0.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_0.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_0.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
 
-        anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
+        // anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
 
         // TRANSFER TOKEN B
-        let _t1_mint = ctx.accounts.token1_mint.key().clone();
-        let binding = ctx.accounts.user_wallet_token_1.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+        // let _t1_mint = ctx.accounts.token1_mint.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_1.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
 
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_1.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_1.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_1.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_1.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
 
-        anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
+        // anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
 
         // Time to create the pool in PDA 
-        let pool = &mut ctx.accounts.pool_state;
-        pool.token0 = ctx.accounts.user_wallet_token_0.key();
-        pool.token1 = ctx.accounts.user_wallet_token_1.key();
-        pool.k_constant = token_a_amount * token_b_amount;
-        pool.current_total_emissions = 0.0;
-        pool.total_staked_token0 += token_a_amount as f64;
-        pool.total_staked_token1 += token_b_amount as f64;
+        // let pool = &mut ctx.accounts.pool_state;
+        // pool.token0 = ctx.accounts.user_wallet_token_0.key();
+        // pool.token1 = ctx.accounts.user_wallet_token_1.key();
+        // pool.k_constant = token_a_amount * token_b_amount;
+        // pool.current_total_emissions = 0.0;
+        // pool.total_staked_token0 += token_a_amount as f64;
+        // pool.total_staked_token1 += token_b_amount as f64;
         
-        // Time to save the deposit in PDA 
-        let position = &mut ctx.accounts.position;
-        position.amount = 100;
-        position.timestamp = clock::Clock::get()
-            .unwrap()
-            .unix_timestamp
-            .try_into()
-            .unwrap();
-        position.current_total_emissions =  pool.current_total_emissions;
-        let timestamp = clock::Clock::get()
-            .unwrap()
-            .unix_timestamp
-            .try_into()
-            .unwrap();
+        // // Time to save the deposit in PDA 
+        // let position = &mut ctx.accounts.position;
+        // position.amount = 100;
+        // position.timestamp = clock::Clock::get()
+        //     .unwrap()
+        //     .unix_timestamp
+        //     .try_into()
+        //     .unwrap();
+        // position.current_total_emissions =  pool.current_total_emissions;
+        // let timestamp = clock::Clock::get()
+        //     .unwrap()
+        //     .unix_timestamp
+        //     .try_into()
+        //     .unwrap();
 
-        let stakers = &mut ctx.accounts.stakers_list.validators;
-        stakers.push( ValidatorStakeInfo {
-            token_0_amount: token_a_amount as i64,
-            token_1_amount: token_b_amount as i64,
-            token_0_reward: 0.0,
-            token_1_reward: 0.0,
-            timestamp,
-            owner: pubkey_invoker
-        });
+        // let stakers = &mut ctx.accounts.stakers_list.validators;
+        // stakers.push( ValidatorStakeInfo {
+        //     token_0_amount: token_a_amount as i64,
+        //     token_1_amount: token_b_amount as i64,
+        //     token_0_reward: 0.0,
+        //     token_1_reward: 0.0,
+        //     timestamp,
+        //     owner: pubkey_invoker
+        // });
+        Ok(())
+    }
+
+    pub fn deposit(
+        ctx: Context<CreateLiquidityPool>,
+        token_a_amount: u64,
+        token_b_amount: u64,
+        pubkey_invoker: Pubkey
+    ) -> Result<()> {
+        // print balances
+        // let depositor_balance = ctx.accounts.user_wallet_token_0.amount;
+        // let pool_balance = ctx.accounts.pool_wallet_token_0.amount;
+
+        // msg!("depositors balance [{}]", depositor_balance);
+        // msg!("pools balance [{}]", pool_balance);
+
+        // let _t0_mint = ctx.accounts.token0_mint.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_0.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
+
+        // TRANSFER TOKEN A
+
+        // check provider has enough of token account a
+        // move lp token account a to pool token account a
+        // Below is the actual instruction that we are going to send to the Token program.
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_0.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_0.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+
+        // anchor_spl::token::transfer(cpi_ctx, token_a_amount)?;
+
+        // TRANSFER TOKEN B
+        // let _t1_mint = ctx.accounts.token1_mint.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_1.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
+
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_1.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_1.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+
+        // anchor_spl::token::transfer(cpi_ctx, token_b_amount)?;
+
+        // Time to create the pool in PDA 
+        // let pool = &mut ctx.accounts.pool_state;
+        // pool.token0 = ctx.accounts.user_wallet_token_0.key();
+        // pool.token1 = ctx.accounts.user_wallet_token_1.key();
+        // pool.k_constant = token_a_amount * token_b_amount;
+        // pool.current_total_emissions = 0.0;
+        // pool.total_staked_token0 += token_a_amount as f64;
+        // pool.total_staked_token1 += token_b_amount as f64;
+        
+        // // Time to save the deposit in PDA 
+        // let position = &mut ctx.accounts.position;
+        // position.amount = 100;
+        // position.timestamp = clock::Clock::get()
+        //     .unwrap()
+        //     .unix_timestamp
+        //     .try_into()
+        //     .unwrap();
+        // position.current_total_emissions =  pool.current_total_emissions;
+        // let timestamp = clock::Clock::get()
+        //     .unwrap()
+        //     .unix_timestamp
+        //     .try_into()
+        //     .unwrap();
+
+        // let stakers = &mut ctx.accounts.stakers_list.validators;
+        // stakers.push( ValidatorStakeInfo {
+        //     token_0_amount: token_a_amount as i64,
+        //     token_1_amount: token_b_amount as i64,
+        //     token_0_reward: 0.0,
+        //     token_1_reward: 0.0,
+        //     timestamp,
+        //     owner: pubkey_invoker
+        // });
         Ok(())
     }
 
@@ -225,6 +322,7 @@ pub mod onchain_gmm_contracts {
 
 #[account]
 pub struct Pool {
+    is_init: bool,
     token0: Pubkey,
     token1: Pubkey,
     k_constant: u64,
@@ -241,56 +339,24 @@ pub struct Position {
 }
 
 #[derive(Accounts)]
-pub struct CreateLiquidityPool<'info> {
+pub struct OpenPosition<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(
-        init,
-        payer = user,
-        space = 8 + 32 + 32 + 8 + 8 + 8 + 8,
-        seeds = [b"pool-state", user.key().as_ref()],
-        bump
-    )]
+    #[account(mut)]
     pub pool_state: Account<'info, Pool>,
 
     #[account(
         init,
         payer = user,
-        seeds=[b"pool_wallet_token_0".as_ref(), token0_mint.key().as_ref()],
-        bump,
-        token::mint=token0_mint,
-        token::authority=user,
-    )]
-    pub pool_wallet_token_0: Account<'info, TokenAccount>,
-
-    #[account(
-        init,
-        payer = user,
-        seeds=[b"pool_wallet_token_1".as_ref(), token1_mint.key().as_ref()],
-        bump,
-        token::mint=token1_mint,
-        token::authority=user,
-    )]
-    pub pool_wallet_token_1: Account<'info, TokenAccount>,
-
-    #[account(
-        init,
-        payer = user,
-        seeds=[b"position".as_ref(), user.key().as_ref(), token0_mint.key().as_ref()],
+        seeds=[b"position".as_ref(), user.key().as_ref(), pool_state.key().as_ref()],
         space = 8 + 2 + 8 + 8,
         bump,
     )]
     pub position: Account<'info, Position>,
 
-    #[account(
-        init,
-        payer = user,
-        seeds=[b"stakers".as_ref(), pool_state.key().as_ref()],
-        space = 80000,
-        bump,
-    )]
+    #[account(mut)]
     pub stakers_list:  Account<'info, ValidatorList>,
 
     // Alice's USDC wallet that has already approved the escrow wallet
@@ -301,6 +367,35 @@ pub struct CreateLiquidityPool<'info> {
     #[account(mut)]
     pub user_wallet_token_1: Account<'info, TokenAccount>,
 
+    // Application level accounts
+    token_program: Program<'info, Token>,
+    system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CreateLiquidityPool<'info> {
+    // Users and accounts in the system
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(
+        init,
+        payer = user,
+        space = 8 + 1 + 32 + 32 + 8 + 8 + 8 + 8,
+        seeds = [b"pool-state", user.key().as_ref()],
+        bump
+    )]
+    pub pool_state: Account<'info, Pool>,
+
+    #[account(
+        init,
+        payer = user,
+        seeds=[b"stakers".as_ref(), pool_state.key().as_ref()],
+        space = 80000,
+        bump,
+    )]
+    pub stakers_list:  Account<'info, ValidatorList>,
+
     pub token0_mint: Account<'info, Mint>,   // USDC
     pub token1_mint: Account<'info, Mint>,   // ETH
 
@@ -308,6 +403,7 @@ pub struct CreateLiquidityPool<'info> {
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
 }
+
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
