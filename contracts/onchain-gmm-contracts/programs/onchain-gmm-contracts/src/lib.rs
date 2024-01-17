@@ -96,21 +96,21 @@ pub mod onchain_gmm_contracts {
             .try_into()
             .unwrap();
         position.current_total_emissions =  pool.current_total_emissions;
-        // let timestamp = clock::Clock::get()
-        //     .unwrap()
-        //     .unix_timestamp
-        //     .try_into()
-        //     .unwrap();
+        let timestamp = clock::Clock::get()
+            .unwrap()
+            .unix_timestamp
+            .try_into()
+            .unwrap();
 
-        // let stakers = &mut ctx.accounts.stakers_list.validators;
-        // stakers.push( ValidatorStakeInfo {
-        //     token_0_amount: token_a_amount as i64,
-        //     token_1_amount: token_b_amount as i64,
-        //     token_0_reward: 0.0,
-        //     token_1_reward: 0.0,
-        //     timestamp,
-        //     owner: pubkey_invoker
-        // });
+        let stakers = &mut ctx.accounts.stakers_list.validators;
+        stakers.push( ValidatorStakeInfo {
+            token_0_amount: token_a_amount as i64,
+            token_1_amount: token_b_amount as i64,
+            token_0_reward: 0.0,
+            token_1_reward: 0.0,
+            timestamp,
+            owner: pubkey_invoker
+        });
         Ok(())
     }
 
@@ -120,92 +120,92 @@ pub mod onchain_gmm_contracts {
         a_to_b: bool
     ) -> Result<()> {
         // print balances
-        let pool_balance = ctx.accounts.pool_wallet_token_0.amount;
-        msg!("[SWAP]pools balance [{}]", pool_balance);
+        // let pool_balance = ctx.accounts.pool_wallet_token_0.amount;
+        // msg!("[SWAP]pools balance [{}]", pool_balance);
 
-        let pool_balance = ctx.accounts.pool_wallet_token_1.amount;
-        msg!("[SWAP]pools balance [{}]", pool_balance);
+        // let pool_balance = ctx.accounts.pool_wallet_token_1.amount;
+        // msg!("[SWAP]pools balance [{}]", pool_balance);
 
-        let _token0 = ctx.accounts.token0_mint.key().clone();
-        let binding = ctx.accounts.user_wallet_token_0.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+        // let _token0 = ctx.accounts.token0_mint.key().clone();
+        // let binding = ctx.accounts.user_wallet_token_0.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
 
-        // CALCULATE PRICE
-        let k_constant = ctx.accounts.pool.k_constant;
-        let token_a_pool_size = ctx.accounts.pool_wallet_token_0.amount;
-        let token_b_pool_size = ctx.accounts.pool_wallet_token_1.amount;
-        // WE NEED LOGIC TO DETERMIN SWAP FOR TOKEN(a) or TOKEN(b) [for now hardcode b] 
-        let new_token_a_pool_size: u64;
-        let new_token_b_pool_size: u64;
-        let output_amount = if !a_to_b {
-            new_token_a_pool_size = token_a_pool_size + input_amount; 
-            new_token_b_pool_size = k_constant / new_token_a_pool_size; 
-            token_b_pool_size - new_token_b_pool_size
-        } else {
-            new_token_b_pool_size = token_b_pool_size + input_amount; 
-            new_token_a_pool_size = k_constant / new_token_b_pool_size; 
-            token_a_pool_size - new_token_a_pool_size
-        };
-        msg!("[SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, output_amount);
-        const fee: f64 = 0.05;
-        const perc_to_swapper: f64 = 1.0 - fee;
-        let real_output: f64 = perc_to_swapper * output_amount as f64;
-        let fee_output: f64 = output_amount as f64 - real_output;
-        msg!("[SWAP] real output [{}] fee_output [{}] ", real_output, fee_output);
+        // // CALCULATE PRICE
+        // let k_constant = ctx.accounts.pool.k_constant;
+        // let token_a_pool_size = ctx.accounts.pool_wallet_token_0.amount;
+        // let token_b_pool_size = ctx.accounts.pool_wallet_token_1.amount;
+        // // WE NEED LOGIC TO DETERMIN SWAP FOR TOKEN(a) or TOKEN(b) [for now hardcode b] 
+        // let new_token_a_pool_size: u64;
+        // let new_token_b_pool_size: u64;
+        // let output_amount = if !a_to_b {
+        //     new_token_a_pool_size = token_a_pool_size + input_amount; 
+        //     new_token_b_pool_size = k_constant / new_token_a_pool_size; 
+        //     token_b_pool_size - new_token_b_pool_size
+        // } else {
+        //     new_token_b_pool_size = token_b_pool_size + input_amount; 
+        //     new_token_a_pool_size = k_constant / new_token_b_pool_size; 
+        //     token_a_pool_size - new_token_a_pool_size
+        // };
+        // msg!("[SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, output_amount);
+        // const fee: f64 = 0.05;
+        // const perc_to_swapper: f64 = 1.0 - fee;
+        // let real_output: f64 = perc_to_swapper * output_amount as f64;
+        // let fee_output: f64 = output_amount as f64 - real_output;
+        // msg!("[SWAP] real output [{}] fee_output [{}] ", real_output, fee_output);
 
-        // TRANSFER TOKEN A to POOL
+        // // TRANSFER TOKEN A to POOL
 
-        // check provider has enough of token account a
-        // move lp token account a to pool token account a
-        // Below is the actual instruction that we are going to send to the Token program.
-        let binding = ctx.accounts.user_wallet_token_0.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+        // // check provider has enough of token account a
+        // // move lp token account a to pool token account a
+        // // Below is the actual instruction that we are going to send to the Token program.
+        // let binding = ctx.accounts.user_wallet_token_0.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
         
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.user_wallet_token_0.to_account_info(),
-            to: ctx.accounts.pool_wallet_token_0.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.user_wallet_token_0.to_account_info(),
+        //     to: ctx.accounts.pool_wallet_token_0.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
 
-        anchor_spl::token::transfer(cpi_ctx, input_amount)?;
+        // anchor_spl::token::transfer(cpi_ctx, input_amount)?;
 
-        // TRANSFER TOKEN B to USER
+        // // TRANSFER TOKEN B to USER
 
-        // check provider has enough of token account b
-        // move lp token account a to pool token account b
-        // Below is the actual instruction that we are going to send to the Token program.
-        let binding = ctx.accounts.user_wallet_token_1.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
+        // // check provider has enough of token account b
+        // // move lp token account a to pool token account b
+        // // Below is the actual instruction that we are going to send to the Token program.
+        // let binding = ctx.accounts.user_wallet_token_1.key();
+        // let inner = vec![
+        //     b"state".as_ref(),
+        //     binding.as_ref(),
+        // ];
+        // let outer = vec![inner.as_slice()];
         
-        let transfer_instruction = Transfer{
-            from: ctx.accounts.pool_wallet_token_1.to_account_info(),
-            to: ctx.accounts.user_wallet_token_1.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-            outer.as_slice(),
-        );
-        // APOLOGIES TO GOD FOR THIS CODE
-        anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
+        // let transfer_instruction = Transfer{
+        //     from: ctx.accounts.pool_wallet_token_1.to_account_info(),
+        //     to: ctx.accounts.user_wallet_token_1.to_account_info(),
+        //     authority: ctx.accounts.user.to_account_info(),
+        // };
+        // let cpi_ctx = CpiContext::new_with_signer(
+        //     ctx.accounts.token_program.to_account_info(),
+        //     transfer_instruction,
+        //     outer.as_slice(),
+        // );
+        // // APOLOGIES TO GOD FOR THIS CODE
+        // anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
         // let stakers = &mut ctx.accounts.stakers_list.validators;
         // let staker_len = stakers.len();
         // let mut iter = &mut stakers.iter_mut();
@@ -287,7 +287,7 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"stakers".as_ref(), user.key().as_ref()],
+        seeds=[b"stakers".as_ref(), pool_state.key().as_ref()],
         space = 8000,
         bump,
     )]
@@ -318,17 +318,19 @@ pub struct Swap<'info> {
     #[account(
         mut,
         seeds = [b"pool-state", user.key().as_ref()],
-        bump,
+        bump
     )]
     pub pool:  Box<Account<'info, Pool>>,
 
     #[account(
+        mut,
         seeds=[b"pool_wallet_token_0".as_ref(), token0_mint.key().as_ref()],
         bump,
     )]
     pub pool_wallet_token_0:  Box<Account<'info, TokenAccount>>,
 
     #[account(
+        mut,
         seeds=[b"pool_wallet_token_1".as_ref(), token1_mint.key().as_ref()],
         bump,
     )]
@@ -337,7 +339,7 @@ pub struct Swap<'info> {
     #[account(
         mut,
         seeds=[b"stakers".as_ref(), pool.key().as_ref()],
-        bump,
+        bump
     )]
     pub stakers_list:   Box<Account<'info, ValidatorList>>,
 

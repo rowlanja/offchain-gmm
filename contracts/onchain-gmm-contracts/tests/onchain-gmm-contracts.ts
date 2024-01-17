@@ -80,7 +80,7 @@ describe("onchain-gmm-contracts", () => {
     const [stakeListPDA, stakeListBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('stakers'),
-        alice.publicKey.toBuffer()
+        poolStatePDA.toBuffer()
       ],
       program.programId
     )
@@ -110,35 +110,47 @@ describe("onchain-gmm-contracts", () => {
     .signers([alice])
     .rpc({skipPreflight: true});
 
-    // [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
-    // console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
+    [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+    console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
 
-    // let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
-    // console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+    let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
 
-    // [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
-    // console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    console.log("[POST] Pool Balance Token B : " + poolBalancePreTokenA);
 
-    // const state = await program.account.position.fetch(userStakePDA);
-    // console.log("amount : " + state.amount.toString());
-    // console.log("timestamp : " + state.timestamp.toString());
+    let state = await program.account.position.fetch(userStakePDA);
+    console.log("amount : " + state.amount.toString());
+    console.log("timestamp : " + state.timestamp.toString());
 
     console.log("TIME TO SWAP ");
-    // await program.methods
-    // .swap(tokenASwapAmount, true)
-    // .accounts({
-    //   user: alice.publicKey,
-    //   pool: poolStatePDA,
-    //   poolWalletToken0: poolWalletTokenAPDA,
-    //   poolWalletToken1: poolWalletTokenBPDA,
-    //   userWalletToken0: aliceWallet,
-    //   userWalletToken1: aliceWallet,
-    //   token0Mint: mintAddress,
-    //   token1Mint: mintAddress,
-    //   tokenProgram: spl.TOKEN_PROGRAM_ID
-    // })
-    // .signers([alice])
-    // .rpc();
+    await program.methods
+    .swap(tokenASwapAmount, true)
+    .accounts({
+      user: alice.publicKey,
+      pool: poolStatePDA,
+      poolWalletToken0: poolWalletTokenAPDA,
+      poolWalletToken1: poolWalletTokenBPDA,
+      stakersList: stakeListPDA,
+      userWalletToken0: aliceWallet,
+      userWalletToken1: aliceWallet,
+      token0Mint: mintAddress,
+      token1Mint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    console.log("[POST] Pool Balance Token B : " + poolBalancePreTokenA);
+
+    state = await program.account.position.fetch(userStakePDA);
+    console.log("amount : " + state.amount.toString());
+    console.log("timestamp : " + state.timestamp.toString());
+
   });
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {
