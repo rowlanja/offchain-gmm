@@ -108,7 +108,7 @@ describe("onchain-gmm-contracts", () => {
       tokenProgram: spl.TOKEN_PROGRAM_ID
     })
     .signers([alice])
-    .rpc({skipPreflight: true});
+    .rpc();
 
     [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
@@ -125,7 +125,7 @@ describe("onchain-gmm-contracts", () => {
 
     console.log("TIME TO SWAP ");
     await program.methods
-    .swap(tokenASwapAmount, true)
+    .swap(tokenASwapAmount, false)
     .accounts({
       user: alice.publicKey,
       pool: poolStatePDA,
