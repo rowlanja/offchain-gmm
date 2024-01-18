@@ -46,13 +46,13 @@ describe("onchain-gmm-contracts", () => {
 
   // it("creates liquidity pool!", async () => {
 
-  //   const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('user-stats'),
-  //       alice.publicKey.toBuffer(),
-  //     ],
-  //     program.programId
-  //   )
+    const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool-state'),
+        alice.publicKey.toBuffer(),
+      ],
+      program.programId
+    )
 
   //   const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
   //     [
@@ -150,124 +150,104 @@ describe("onchain-gmm-contracts", () => {
     const amount = new anchor.BN(0);
     const [position_bundle, position_bundleBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('position_bundle'),
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_0'),
         mintAddress.toBuffer()
       ],
       program.programId
     )
 
-    await program.methods.initializePool(amount, 128).accounts(
-      {
-        user: alice.publicKey,
-        positionBundle: position_bundle,
-        mintOfTokenBeingSent: mintAddress,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: spl.TOKEN_PROGRAM_ID,
-      }
+    const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_wallet_token_1'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
     )
+
+    const [userStakePDA, userStakeBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('position'),
+        alice.publicKey.toBuffer(),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [stakeListPDA, stakeListBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('stakers'),
+        poolStatePDA.toBuffer()
+      ],
+      program.programId
+    )
+
+    let [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+    console.log("[PRE] Creator Balance Token A : " + aliceBalancePreTokenA)
+
+    let tokenADepositAmount = new anchor.BN(100);
+    let tokenBDepositAmount = new anchor.BN(200);
+    let tokenASwapAmount = new anchor.BN(5);
+
+    await program.methods
+    .createPool(tokenADepositAmount, tokenBDepositAmount, alice.publicKey)
+    .accounts({
+      user: alice.publicKey,
+      poolState: poolStatePDA,
+      poolWalletToken0: poolWalletTokenAPDA,
+      poolWalletToken1: poolWalletTokenBPDA,
+      position: userStakePDA,
+      stakersList: stakeListPDA,
+      userWalletToken0: aliceWallet,
+      userWalletToken1: aliceWallet,
+      token0Mint: mintAddress,
+      token1Mint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
     .signers([alice])
     .rpc();
+
+    [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
+    console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
+
+    let [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    console.log("[POST] Pool Balance Token B : " + poolBalancePreTokenA);
+
+    let state = await program.account.position.fetch(userStakePDA);
+    console.log("amount : " + state.amount.toString());
+    console.log("timestamp : " + state.timestamp.toString());
+
+    console.log("TIME TO SWAP ");
+    await program.methods
+    .swap(tokenASwapAmount, false)
+    .accounts({
+      user: alice.publicKey,
+      pool: poolStatePDA,
+      poolWalletToken0: poolWalletTokenAPDA,
+      poolWalletToken1: poolWalletTokenBPDA,
+      stakersList: stakeListPDA,
+      userWalletToken0: aliceWallet,
+      userWalletToken1: aliceWallet,
+      token0Mint: mintAddress,
+      token1Mint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
+    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
+
+    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
+    console.log("[POST] Pool Balance Token B : " + poolBalancePreTokenA);
+
+    state = await program.account.position.fetch(userStakePDA);
+    console.log("amount : " + state.amount.toString());
+    console.log("timestamp : " + state.timestamp.toString());
+
   });
-
-  // it("creates position in concentrated pool!", async () => {
-  //   // Add your test here.
-  //   const mintAddress = await createMint(provider.connection);
-  //   const [alice, aliceWallet] = await createUserAndAssociatedWallet(provider.connection, mintAddress);
-  //   const upper_price = 5500.0;
-  //   const lower_price = 4545.0;
-  //   const current_price = 5000.0;
-
-  //   const lower_tick_id = new anchor.BN(10);
-  //   const upper_tick_id = new anchor.BN(20);
-  //   const amount = new anchor.BN(1);
-
-  //   const [lowerTick, lowerTickBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('clamm'),
-  //       mintAddress.toBuffer(),
-  //       mintAddress.toBuffer(),
-  //       lower_tick_id.toArrayLike(Buffer,"le",8)
-  //     ],
-  //     program.programId
-  //   )
-
-  //   const [upperTick, upperTickBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('clamm'),
-  //       mintAddress.toBuffer(),
-  //       mintAddress.toBuffer(),
-  //       upper_tick_id.toArrayLike(Buffer,"le",8)
-  //     ],
-  //     program.programId
-  //   )
-
-  //   const [position, positionBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('clamm_position'),
-  //       mintAddress.toBuffer(),
-  //       mintAddress.toBuffer(),
-  //       lower_tick_id.toArrayLike(Buffer,"le",8),
-  //       upper_tick_id.toArrayLike(Buffer,"le",8)
-  //     ],
-  //     program.programId
-  //   )
-
-  //   const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('user-stats'),
-  //       alice.publicKey.toBuffer(),
-  //     ],
-  //     program.programId
-  //   )
-
-  //   const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
-  //       mintAddress.toBuffer()
-  //     ],
-  //     program.programId
-  //   )
-
-  //   const [poolWalletTokenBPDA, walletTokenBBump] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode('pool_wallet_token_b'),
-  //       mintAddress.toBuffer()
-  //     ],
-  //     program.programId
-  //   )
-
-  //   await program.methods.createPositionConcentratedPool(
-  //     lower_tick_id,
-  //     upper_tick_id,
-  //     lower_price,
-  //     upper_price,
-  //     current_price,
-  //     amount
-  //     ).accounts(
-  //     {
-  //       user: alice.publicKey,
-  //       lowerTick: lowerTick,
-  //       upperTick: upperTick,
-  //       position: position,
-  //       poolWalletTokenA: poolWalletTokenAPDA,
-  //       poolWalletTokenB: poolWalletTokenAPDA,
-  //       token0: mintAddress,
-  //       token1: mintAddress,
-  //       userWalletTokenA: aliceWallet,
-  //       userWalletTokenB: aliceWallet,
-  //       // poolWalletTokenB: poolKey.publicKey,
-  //       // userSending: alice.publicKey,
-  //       // mintOfTokenBeingSentA: mintObject.publicKey,
-  //       // mintOfTokenBeingSentB: mintObject.publicKey,
-  //       systemProgram: anchor.web3.SystemProgram.programId,
-  //       tokenProgram: spl.TOKEN_PROGRAM_ID,
-  //     }
-  //   )
-  //   .signers([alice])
-  //   .rpc();
-  // });
-
-
 
   const createUserAndAssociatedWallet = async (connection: anchor.web3.Connection, mint?: anchor.web3.PublicKey): Promise<[anchor.web3.Keypair, anchor.web3.PublicKey | undefined]> => {
     const user = new anchor.web3.Keypair();
