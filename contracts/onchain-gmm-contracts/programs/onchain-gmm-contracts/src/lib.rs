@@ -126,14 +126,6 @@ pub mod onchain_gmm_contracts {
         let pool_balance = ctx.accounts.pool_wallet_token_1.amount;
         msg!("[SWAP]pools balance [{}]", pool_balance);
 
-        let _token0 = ctx.accounts.token0_mint.key().clone();
-        let binding = ctx.accounts.user_wallet_token_0.key();
-        let inner = vec![
-            b"state".as_ref(),
-            binding.as_ref(),
-        ];
-        let outer = vec![inner.as_slice()];
-
         // // CALCULATE PRICE
         let k_constant = ctx.accounts.pool.k_constant;
         let token_a_pool_size = ctx.accounts.pool_wallet_token_0.amount;
@@ -207,18 +199,24 @@ pub mod onchain_gmm_contracts {
         anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
 
         // // APOLOGIES TO GOD FOR THIS CODE
-        // let stakers = &mut ctx.accounts.stakers_list.validators;
-        // let staker_len = stakers.len();
-        // let mut iter = &mut stakers.iter_mut();
-        // // Time to update the stakers rewards 
-        // while let Some(staker) = iter.next() {
-        //     msg!("staker vec[{}] [{}] [{}]", staker.owner, staker.token_0_amount, staker.token_1_amount);
-        //     if a_to_b {
-        //         staker.token_0_reward = (staker.token_0_amount / new_token_a_pool_size as i64 ) as f64 * fee_output;
-        //     } else { 
-        //         staker.token_1_reward = (staker.token_1_amount / new_token_b_pool_size as i64 ) as f64 * fee_output;
-        //     }
-        // }
+        let stakers = &mut ctx.accounts.stakers_list.validators;
+        let staker_len = stakers.len();
+        let mut iter = &mut stakers.iter_mut();
+        // Time to update the stakers rewards 
+        while let Some(staker) = iter.next() {
+            if a_to_b {
+                staker.token_0_reward = (staker.token_0_amount / new_token_a_pool_size as i64 ) as f64 * fee_output;
+            } else { 
+                staker.token_1_reward = (staker.token_1_amount / new_token_b_pool_size as i64 ) as f64 * fee_output;
+            }
+            msg!("staker owner[{}] amounta[{}] amountb[{}] rewardedA[{}] rewardedB[{}]", 
+                staker.owner,
+                staker.token_0_amount,
+                staker.token_1_amount,
+                staker.token_0_reward,
+                staker.token_1_reward,
+            );
+        }
         Ok(())
     }
 }
@@ -255,6 +253,9 @@ pub struct CreateLiquidityPool<'info> {
         bump
     )]
     pub pool_state: Box<Account<'info, Pool>>,
+    // init_if_needed
+    // #[account(mut)]
+    // pub reward_pool_state: Box<Account<'info, Pool>>,
 
     #[account(
         init,
@@ -305,6 +306,9 @@ pub struct CreateLiquidityPool<'info> {
     pub token0_mint: Account<'info, Mint>,   // USDC
     pub token1_mint: Account<'info, Mint>,   // ETH
 
+    // pub reward_token0_mint: Account<'info, Mint>,   // USDC
+    // pub reward_token1_mint: Account<'info, Mint>,   // ETH
+
     // Application level accounts
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
@@ -329,11 +333,7 @@ pub struct Swap<'info> {
     #[account(mut)]
     pub pool_wallet_token_1:  Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        mut,
-        seeds=[b"stakers".as_ref(), pool.key().as_ref()],
-        bump
-    )]
+    #[account(mut)]
     pub stakers_list:   Box<Account<'info, ValidatorList>>,
 
     // Alice's USDC wallet that has already approved the escrow wallet
