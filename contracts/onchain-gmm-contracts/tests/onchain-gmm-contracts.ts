@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import * as utils from "./utils";
 import * as spl from '@solana/spl-token';
 import { Program } from "@coral-xyz/anchor";
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 import { OnchainGmmContracts } from "../target/types/onchain_gmm_contracts";
 import { expect } from 'chai';
@@ -61,7 +61,7 @@ describe("onchain-gmm-contracts", () => {
 
     const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode('soltate'),
+        anchor.utils.bytes.utf8.encode('sol'),
         mintAddress.toBuffer(),
       ],
       program.programId
@@ -160,12 +160,13 @@ describe("onchain-gmm-contracts", () => {
     .rpc();
 
     // SET UP TOKEN0_SOL pool
+    console.log("[PRE] setting up SOL pools")
     await program.methods
-    .createSolPool(new anchor.BN(1), new anchor.BN(100))
+    .createSolPool(new anchor.BN(LAMPORTS_PER_SOL * 0.001), new anchor.BN(100))
     .accounts({
       user: alice.publicKey,
       poolState: solToken0StatePDA,
-      poolTokenWallet: poolWalletTokenBPDASol,
+      poolTokenWallet: poolWalletTokenAPDASol,
       position: userSolToken0StakePDA,
       wallet: alice.publicKey,
       userWalletToken: aliceWallet,
@@ -176,20 +177,20 @@ describe("onchain-gmm-contracts", () => {
     .rpc();
 
     // SET UP TOKEN1_SOL pool
-    // await program.methods
-    // .createSolPool(new anchor.BN(1), new anchor.BN(100))
-    // .accounts({
-    //   user: alice.publicKey,
-    //   poolState: solToken0StatePDA,
-    //   poolTokenWallet: poolWalletTokenBPDASol,
-    //   position: userSolToken0StakePDA,
-    //   wallet: alice.publicKey,
-    //   userWalletToken: aliceWallet,
-    //   tokenMint: mintAddress,
-    //   tokenProgram: spl.TOKEN_PROGRAM_ID
-    // })
-    // .signers([alice])
-    // .rpc();
+    await program.methods
+    .createSolPool(new anchor.BN(LAMPORTS_PER_SOL * 0.001), new anchor.BN(100))
+    .accounts({
+      user: alice.publicKey,
+      poolState: solToken1StatePDA,
+      poolTokenWallet: poolWalletTokenBPDASol,
+      position: userSolToken1StakePDA,
+      wallet: alice.publicKey,
+      userWalletToken: aliceWallet,
+      tokenMint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
 
     [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);

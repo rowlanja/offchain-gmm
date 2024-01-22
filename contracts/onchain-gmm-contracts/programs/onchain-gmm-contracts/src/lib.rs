@@ -23,17 +23,18 @@ pub mod onchain_gmm_contracts {
         token_amount: u64,
     ) -> Result<()> {
         // print balances
+        msg!("Creating sol pools");
+
         let pool_token_wallet = &ctx.accounts.pool_token_wallet;
         let user_token_wallet = &ctx.accounts.user_wallet_token;
         
-        let pool_sol_wallet = &ctx.accounts.wallet.to_account_info();
-        let user_sol_wallet = &ctx.accounts.pool_state.to_account_info();
+        let user_sol_wallet = &ctx.accounts.wallet.to_account_info();
+        let pool_sol_wallet = &ctx.accounts.pool_state.to_account_info();
         let system_program = &ctx.accounts.system_program.to_account_info();
 
         msg!("pool_token_balance balance [{}]", pool_token_wallet.amount);
         msg!("user_token_balance balance [{}]", user_token_wallet.amount);
 
-        
         msg!("pool_sol_balance balance [{}]", pool_sol_wallet.lamports());
         msg!("user_sol_balance balance [{}]", user_sol_wallet.lamports());
 
@@ -94,6 +95,18 @@ pub mod onchain_gmm_contracts {
             .try_into()
             .unwrap();
         position.current_total_emissions =  pool.current_total_emissions;
+        let pool_token_wallet = &ctx.accounts.pool_token_wallet;
+        let user_token_wallet = &ctx.accounts.user_wallet_token;
+        
+        let user_sol_wallet = &ctx.accounts.wallet.to_account_info();
+        let pool_sol_wallet = &ctx.accounts.pool_state.to_account_info();
+        
+        msg!("pool_token_balance balance [{}]", pool_token_wallet.amount);
+        msg!("user_token_balance balance [{}]", user_token_wallet.amount);
+
+        msg!("pool_sol_balance balance [{}]", pool_sol_wallet.lamports());
+        msg!("user_sol_balance balance [{}]", user_sol_wallet.lamports());
+
         Ok(())
     }
 
