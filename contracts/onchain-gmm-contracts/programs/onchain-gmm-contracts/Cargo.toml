@@ -11,10 +11,8 @@ name = "onchain_gmm_contracts"
 [features]
 no-entrypoint = []
 no-idl = []
-no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = []
-verbose = []
 
 [dependencies]
 anchor-lang = "0.29.0"

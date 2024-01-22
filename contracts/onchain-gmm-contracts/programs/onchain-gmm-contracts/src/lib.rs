@@ -15,6 +15,7 @@ declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
 #[program]
 pub mod onchain_gmm_contracts {
+
     use super::*;
 
     pub fn create_sol_pool(
@@ -205,7 +206,7 @@ pub mod onchain_gmm_contracts {
 
         let pool_balance = ctx.accounts.pool_wallet_token_1.amount;
         msg!("[SWAP]pools balance [{}]", pool_balance);
-
+ 
         // // CALCULATE PRICE
         let k_constant = ctx.accounts.pool.k_constant;
         let token_a_pool_size = ctx.accounts.pool.total_staked_token0 as u64;
@@ -518,7 +519,7 @@ pub struct CreateLiquidityPool<'info> {
 }
 
 #[derive(Accounts)]
-pub struct Swap<'info> {
+pub struct V1Swap<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
