@@ -28,8 +28,8 @@ describe("onchain-gmm-contracts", () => {
   let alice: anchor.web3.Keypair;
   let aliceWallet: anchor.web3.PublicKey;
   let bob: anchor.web3.Keypair;
-
-  let pda: PDAParameters;
+  let solTokenAddress: anchor.web3.Keypair;
+  let solRewardsPoolAddress: anchor.web3.Keypair;
 
   beforeEach(async () => {
     mintAddress = await createMint(provider.connection);
@@ -37,9 +37,7 @@ describe("onchain-gmm-contracts", () => {
 
     let _rest;
     [bob, ..._rest] = await createUserAndAssociatedWallet(provider.connection);
-
-    pda = await getPdaParams(provider.connection, alice.publicKey, bob.publicKey, mintAddress);
-});
+  });
 
 
   it("creates liquidity pool!", async () => {
@@ -47,7 +45,24 @@ describe("onchain-gmm-contracts", () => {
     const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('pool-state'),
-        alice.publicKey.toBuffer(),
+        mintAddress.toBuffer(),
+        mintAddress.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('sol'),
+        mintAddress.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('soltate'),
+        mintAddress.toBuffer(),
       ],
       program.programId
     )
@@ -55,6 +70,22 @@ describe("onchain-gmm-contracts", () => {
     const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('pool_wallet_token_0'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [poolWalletTokenBPDASol, walletSolTokenBBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_token_wallet'),
+        mintAddress.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [poolWalletTokenAPDASol, walletSolTokenABump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('pool_token_wallet'),
         mintAddress.toBuffer()
       ],
       program.programId
@@ -77,6 +108,24 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
+    const [userSolToken0StakePDA, userSolToken0StakeBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('position'),
+        alice.publicKey.toBuffer(),
+        solToken0StatePDA.toBuffer()
+      ],
+      program.programId
+    )
+
+    const [userSolToken1StakePDA, userSolToken1StakeBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('position'),
+        alice.publicKey.toBuffer(),
+        solToken1StatePDA.toBuffer()
+      ],
+      program.programId
+    )
+
     const [stakeListPDA, stakeListBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('stakers'),
@@ -93,7 +142,7 @@ describe("onchain-gmm-contracts", () => {
     let tokenASwapAmount = new anchor.BN(5);
 
     await program.methods
-    .createPool(tokenADepositAmount, tokenBDepositAmount, alice.publicKey)
+    .createPool(tokenADepositAmount, tokenBDepositAmount, alice.publicKey, false)
     .accounts({
       user: alice.publicKey,
       poolState: poolStatePDA,
@@ -110,6 +159,38 @@ describe("onchain-gmm-contracts", () => {
     .signers([alice])
     .rpc();
 
+    // SET UP TOKEN0_SOL pool
+    await program.methods
+    .createSolPool(new anchor.BN(1), new anchor.BN(100))
+    .accounts({
+      user: alice.publicKey,
+      poolState: solToken0StatePDA,
+      poolTokenWallet: poolWalletTokenBPDASol,
+      position: userSolToken0StakePDA,
+      wallet: alice.publicKey,
+      userWalletToken: aliceWallet,
+      tokenMint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
+
+    // SET UP TOKEN1_SOL pool
+    // await program.methods
+    // .createSolPool(new anchor.BN(1), new anchor.BN(100))
+    // .accounts({
+    //   user: alice.publicKey,
+    //   poolState: solToken0StatePDA,
+    //   poolTokenWallet: poolWalletTokenBPDASol,
+    //   position: userSolToken0StakePDA,
+    //   wallet: alice.publicKey,
+    //   userWalletToken: aliceWallet,
+    //   tokenMint: mintAddress,
+    //   tokenProgram: spl.TOKEN_PROGRAM_ID
+    // })
+    // .signers([alice])
+    // .rpc();
+
     [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
 
@@ -123,12 +204,19 @@ describe("onchain-gmm-contracts", () => {
     console.log("amount : " + state.amount.toString());
     console.log("timestamp : " + state.timestamp.toString());
 
+
+    let poolPDA = await program.account.pool.fetch(poolStatePDA);
+    console.log("Pool PDA token 0 balance : " + poolPDA.totalStakedToken0.toString());
+    console.log("Pool PDA token 1 balance : " + poolPDA.totalStakedToken1.toString());
+
     console.log("TIME TO SWAP ");
     await program.methods
     .swap(tokenASwapAmount, false)
     .accounts({
       user: alice.publicKey,
       pool: poolStatePDA,
+      // rewardPool0For2: solToken0StatePDA,
+      // rewardPool1For2: solToken1StatePDA,
       poolWalletToken0: poolWalletTokenAPDA,
       poolWalletToken1: poolWalletTokenBPDA,
       stakersList: stakeListPDA,
@@ -141,11 +229,9 @@ describe("onchain-gmm-contracts", () => {
     .signers([alice])
     .rpc();
 
-    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenAPDA, provider);
-    console.log("[POST] Pool Balance Token A : " + poolBalancePreTokenA);
-
-    [, poolBalancePreTokenA] = await readAccount(poolWalletTokenBPDA, provider);
-    console.log("[POST] Pool Balance Token B : " + poolBalancePreTokenA);
+    poolPDA = await program.account.pool.fetch(poolStatePDA);
+    console.log("Pool PDA token 0 balance : " + poolPDA.totalStakedToken0.toString());
+    console.log("Pool PDA token 1 balance : " + poolPDA.totalStakedToken1.toString());
 
     state = await program.account.position.fetch(userStakePDA);
     console.log("amount : " + state.amount.toString());
