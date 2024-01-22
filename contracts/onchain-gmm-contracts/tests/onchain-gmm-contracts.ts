@@ -160,9 +160,9 @@ describe("onchain-gmm-contracts", () => {
     .rpc();
 
     // SET UP TOKEN0_SOL pool
-    console.log("[PRE] setting up SOL pools")
+    console.log("[PRE] setting up SOL token0 Pool");
     await program.methods
-    .createSolPool(new anchor.BN(LAMPORTS_PER_SOL * 0.001), new anchor.BN(100))
+    .createSolPool(new anchor.BN(1000000), new anchor.BN(100))
     .accounts({
       user: alice.publicKey,
       poolState: solToken0StatePDA,
@@ -176,13 +176,13 @@ describe("onchain-gmm-contracts", () => {
     .signers([alice])
     .rpc();
 
-    // SET UP TOKEN1_SOL pool
+    console.log("[PRE] setting up SOL token1 Pool");
     await program.methods
-    .createSolPool(new anchor.BN(LAMPORTS_PER_SOL * 0.001), new anchor.BN(100))
+    .createSolPool(new anchor.BN(1000000), new anchor.BN(200))
     .accounts({
       user: alice.publicKey,
       poolState: solToken1StatePDA,
-      poolTokenWallet: poolWalletTokenBPDASol,
+      poolTokenWallet: poolWalletTokenAPDASol,
       position: userSolToken1StakePDA,
       wallet: alice.publicKey,
       userWalletToken: aliceWallet,
@@ -191,6 +191,24 @@ describe("onchain-gmm-contracts", () => {
     })
     .signers([alice])
     .rpc();
+    let [, poolBalanceSolPoolTokenA] = await readAccount(poolWalletTokenAPDASol, provider);
+    console.log("[POST] Pool Balance Token A / SOL : " + poolBalanceSolPoolTokenA);
+
+    // SET UP TOKEN1_SOL pool
+    // await program.methods
+    // .createSolPool(new anchor.BN(1), new anchor.BN(100))
+    // .accounts({
+    //   user: alice.publicKey,
+    //   poolState: solToken0StatePDA,
+    //   poolTokenWallet: poolWalletTokenBPDASol,
+    //   position: userSolToken0StakePDA,
+    //   wallet: alice.publicKey,
+    //   userWalletToken: aliceWallet,
+    //   tokenMint: mintAddress,
+    //   tokenProgram: spl.TOKEN_PROGRAM_ID
+    // })
+    // .signers([alice])
+    // .rpc();
 
     [, aliceBalancePreTokenA] = await readAccount(aliceWallet, provider);
     console.log("[POST] Creator Balance Token A : " + aliceBalancePreTokenA);
@@ -249,7 +267,7 @@ describe("onchain-gmm-contracts", () => {
     txFund.add(anchor.web3.SystemProgram.transfer({
         fromPubkey: provider.wallet.publicKey,
         toPubkey: user.publicKey,
-        lamports: 5 * anchor.web3.LAMPORTS_PER_SOL,
+        lamports: 500 * anchor.web3.LAMPORTS_PER_SOL,
     }));
     const sigTxFund = await provider.sendAndConfirm(txFund);
     console.log(`[${user.publicKey.toBase58()}] Funded new account with 5 SOL: ${sigTxFund}`);

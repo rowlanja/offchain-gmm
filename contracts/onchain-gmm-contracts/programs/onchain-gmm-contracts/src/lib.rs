@@ -23,7 +23,7 @@ pub mod onchain_gmm_contracts {
         token_amount: u64,
     ) -> Result<()> {
         // print balances
-        msg!("Creating sol pools");
+        msg!("Creating sol pools [{}] [{}]", sol_amount, token_amount);
 
         let pool_token_wallet = &ctx.accounts.pool_token_wallet;
         let user_token_wallet = &ctx.accounts.user_wallet_token;
@@ -51,7 +51,7 @@ pub mod onchain_gmm_contracts {
             ],
         )?;
 
-        let binding = pool_token_wallet.key();
+        let binding = ctx.accounts.user_wallet_token.key();
         let inner = vec![
             b"state".as_ref(),
             binding.as_ref(),
@@ -64,8 +64,8 @@ pub mod onchain_gmm_contracts {
         // move lp token account a to pool token account a
         // Below is the actual instruction that we are going to send to the Token program.
         let transfer_instruction = Transfer{
-            from: user_token_wallet.to_account_info(),
-            to: pool_token_wallet.to_account_info(),
+            from: ctx.accounts.user_wallet_token.to_account_info(),
+            to: ctx.accounts.pool_token_wallet.to_account_info(),
             authority: ctx.accounts.user.to_account_info(),
         };
         let cpi_ctx = CpiContext::new_with_signer(
@@ -95,18 +95,6 @@ pub mod onchain_gmm_contracts {
             .try_into()
             .unwrap();
         position.current_total_emissions =  pool.current_total_emissions;
-        let pool_token_wallet = &ctx.accounts.pool_token_wallet;
-        let user_token_wallet = &ctx.accounts.user_wallet_token;
-        
-        let user_sol_wallet = &ctx.accounts.wallet.to_account_info();
-        let pool_sol_wallet = &ctx.accounts.pool_state.to_account_info();
-        
-        msg!("pool_token_balance balance [{}]", pool_token_wallet.amount);
-        msg!("user_token_balance balance [{}]", user_token_wallet.amount);
-
-        msg!("pool_sol_balance balance [{}]", pool_sol_wallet.lamports());
-        msg!("user_sol_balance balance [{}]", user_sol_wallet.lamports());
-
         Ok(())
     }
 
