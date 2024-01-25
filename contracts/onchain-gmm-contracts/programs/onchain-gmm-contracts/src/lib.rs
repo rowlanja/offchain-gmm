@@ -196,7 +196,7 @@ pub mod onchain_gmm_contracts {
     }
 
     pub fn swap(
-        ctx: Context<Swap>,
+        ctx: Context<V1Swap>,
         input_amount: u64,
         a_to_b: bool
     ) -> Result<()> {

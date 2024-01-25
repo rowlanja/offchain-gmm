@@ -42,76 +42,12 @@ describe("onchain-gmm-contracts", () => {
   });
 
 
-  // it("creates liquidity pool!", async () => {
+  it("creates liquidity pool!", async () => {
 
     const [poolStatePDA, poolBump] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode('pool-state'),
         mintAddress.toBuffer(),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
-        mintAddress.toBuffer(),
-      ],
-      program.programId
-    )
-
-    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode('sol'),
         mintAddress.toBuffer(),
       ],
       program.programId
@@ -217,7 +153,7 @@ describe("onchain-gmm-contracts", () => {
   //   })
   //   .signers([alice])
   //   .rpc();
-  // });
+  });
 
   it("creates concentrated pool!", async () => {
     // Add your test here.
