@@ -117,6 +117,22 @@ describe("onchain-gmm-contracts", () => {
       program.programId
     )
 
+    const [solToken0StatePDA, solToken0StateBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('sol'),
+        mintAddress.toBuffer(),
+      ],
+      program.programId
+    )
+
+    const [solToken1StatePDA, solToken1StateBump] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode('sol'),
+        mintAddress.toBuffer(),
+      ],
+      program.programId
+    )
+
   //   const [poolWalletTokenAPDA, walletTokenABump] = await PublicKey.findProgramAddress(
   //     [
   //       anchor.utils.bytes.utf8.encode('pool_wallet_token_a'),
