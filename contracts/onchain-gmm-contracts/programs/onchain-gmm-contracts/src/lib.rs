@@ -15,7 +15,6 @@ declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
 
 #[program]
 pub mod onchain_gmm_contracts {
-
     use super::*;
 
     pub fn create_sol_pool(
@@ -196,7 +195,7 @@ pub mod onchain_gmm_contracts {
     }
 
     pub fn swap(
-        ctx: Context<V1Swap>,
+        ctx: Context<Swap>,
         input_amount: u64,
         a_to_b: bool
     ) -> Result<()> {
@@ -224,6 +223,7 @@ pub mod onchain_gmm_contracts {
             token_a_pool_size - new_token_a_pool_size
         };
         msg!("[SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, output_amount);
+
         const fee: f64 = 0.05;
         const perc_to_swapper: f64 = 1.0 - fee;
         let real_output: f64 = perc_to_swapper * output_amount as f64;
@@ -283,84 +283,76 @@ pub mod onchain_gmm_contracts {
         let token_b_pool_size = new_token_b_pool_size;
 
         // TIME TO CONVETR FEE TO SOL 
-        // let paying_wallet: TokenAccount
-        // let receiving_wallet = &ctx.accounts.pool.to_account_info();
-        // if a_to_b {
-        //     // b for c's
-        //     // a
-        //     // CALCULATE PRICE
-        //     let paying_wallet = ctx.accounts.pool_wallet_token_1.to_account_info();
-        //     let k_constant = ctx.accounts.reward_pool.k_constant;
-        //     let token_a_pool_size = ctx.accounts.pool_reward_wallet_token_1.amount;
-        //     let token_b_pool_size = ctx.accounts.pool_reward_wallet_token_2.amount;
-        // } else {
-        //     // a for c's
-        //     let paying_wallet = ctx.accounts.pool_wallet_token_0.to_account_info();
-        //     let k_constant = ctx.accounts.reward_pool.k_constant;
-        //     let token_a_pool_size = ctx.accounts.pool_reward_wallet_token_0.amount;
-        //     let token_b_pool_size = ctx.accounts.pool_reward_wallet_token_2.amount; 
-        // }
+        let (paying_wallet, reward_pool) = if a_to_b {
+            let k_constant = ctx.accounts.reward_pool_0_for_2.k_constant;
+            let token_a_pool_size = ctx.accounts.reward_pool_0_for_2.total_staked_token0 as u64;
+            let token_b_pool_size = ctx.accounts.reward_pool_0_for_2.total_staked_token1 as u64;
+            (ctx.accounts.pool_wallet_token_0.to_account_info(), ctx.accounts.reward_pool_0_for_2.to_account_info())
+        } else {
+            let k_constant = ctx.accounts.reward_pool_1_for_2.k_constant;
+            let token_a_pool_size = ctx.accounts.reward_pool_1_for_2.total_staked_token0 as u64;
+            let token_b_pool_size = ctx.accounts.reward_pool_1_for_2.total_staked_token1 as u64;
+            (ctx.accounts.pool_wallet_token_1.to_account_info(), ctx.accounts.reward_pool_1_for_2.to_account_info())
+        };
 
-        // let output_amount = if !a_to_b {
-        //     new_token_a_pool_size = token_a_pool_size + fee_output; 
-        //     new_token_b_pool_size = k_constant / new_token_a_pool_size; 
-        //     token_b_pool_size - new_token_b_pool_size            
-        // } else {
-        //     new_token_b_pool_size = token_b_pool_size + fee_output; 
-        //     new_token_a_pool_size = k_constant / new_token_b_pool_size; 
-        //     token_a_pool_size - new_token_a_pool_size
-        // };
-        // msg!("[FEE] [TOKEN A FOR C SWAP] k constant [{}] price [{}]", k_constant, output_amount);
+        let new_token_a_pool_size: u64;
+        let new_token_b_pool_size: u64;
+        let sol_output_amount = if !a_to_b {
+            new_token_a_pool_size = token_a_pool_size + input_amount; 
+            new_token_b_pool_size = k_constant / new_token_a_pool_size; 
+            token_b_pool_size - new_token_b_pool_size
+        } else {
+            new_token_b_pool_size = token_b_pool_size + input_amount; 
+            new_token_a_pool_size = k_constant / new_token_b_pool_size; 
+            token_a_pool_size - new_token_a_pool_size
+        };
+        msg!("[REWARD SWAP] [TOKEN A SWAP] k constant [{}] price [{}]", k_constant, output_amount);
+
+        // TRANSFER out tokens
  
-        //  // TRANSFER TOKEN A to POOL
- 
-        //  // check provider has enough of token account a
-        //  // move lp token account a to pool token account a
-        //  // Below is the actual instruction that we are going to send to the Token program.
-        //  let binding = paying_wallet.key();
-        //  let inner = vec![
-        //      b"state".as_ref(),
-        //      binding.as_ref(),
-        //  ];
-        //  let outer = vec![inner.as_slice()];
+        // check provider has enough of token account a
+        // move lp token account a to pool token account a
+        // Below is the actual instruction that we are going to send to the Token program.
+        let binding = paying_wallet.key();
+        let inner = vec![
+            b"state".as_ref(),
+            binding.as_ref(),
+        ];
+        let outer = vec![inner.as_slice()];
          
-        //  let transfer_instruction = Transfer{
-        //      from: paying_wallet,
-        //      to: receiving_wallet,
-        //      authority: ctx.accounts.user.to_account_info(),
-        //  };
-        //  let cpi_ctx = CpiContext::new_with_signer(
-        //      ctx.accounts.token_program.to_account_info(),
-        //      transfer_instruction,
-        //      outer.as_slice(),
-        //  );
+        let transfer_instruction = Transfer{
+            from: paying_wallet, //origin pool
+            to: ctx.accounts.reward_pool_wallet_token.to_account_info(), //reward pool
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            transfer_instruction,
+            outer.as_slice(),
+        );
  
-        //  anchor_spl::token::transfer(cpi_ctx, input_amount)?;
+        anchor_spl::token::transfer(cpi_ctx, input_amount)?;
  
-        //  // TRANSFER SOL to USER
- 
-        //  // check provider has enough of token account b
-        //  // move lp token account a to pool token account b
-        //  // Below is the actual instruction that we are going to send to the Token program.
-        //  let binding = ctx.accounts.user_wallet_token_1.key();
-        //  let inner = vec![
-        //      b"state".as_ref(),
-        //      binding.as_ref(),
-        //  ];
-        //  let outer = vec![inner.as_slice()];
-         
-        //  let transfer_instruction = Transfer{
-        //      from: ctx.accounts.pool_wallet_token_1.to_account_info(),
-        //      to: ctx.accounts.user_wallet_token_1.to_account_info(),
-        //      authority: ctx.accounts.user.to_account_info(),
-        //  };
-        //  let cpi_ctx = CpiContext::new_with_signer(
-        //      ctx.accounts.token_program.to_account_info(),
-        //      transfer_instruction,
-        //      outer.as_slice(),
-        //  );
-        //  anchor_spl::token::transfer(cpi_ctx, real_output as u64)?;
- 
+        // TRANSFER in sol
+        let origin_pool_sol = &ctx.accounts.pool.to_account_info();
+        let reward_pool_sol = reward_pool;
+        let system_program = &ctx.accounts.system_program.to_account_info();
+
+        // check provider has enough of token account b
+        // move lp token account a to pool token account b
+        // Below is the actual instruction that we are going to send to the Token program.
+        invoke(
+            &system_instruction::transfer(
+                &reward_pool_sol.key(),
+                &origin_pool_sol.key(),
+                sol_output_amount,
+            ),
+            &[
+                reward_pool_sol.clone(),
+                origin_pool_sol.clone(),
+                system_program.clone(),
+            ],
+        )?;
         // // APOLOGIES TO GOD FOR THIS CODE
         let stakers = &mut ctx.accounts.stakers_list.validators;
         let staker_len = stakers.len();
@@ -519,7 +511,7 @@ pub struct CreateLiquidityPool<'info> {
 }
 
 #[derive(Accounts)]
-pub struct V1Swap<'info> {
+pub struct Swap<'info> {
     // Users and accounts in the system
     #[account(mut)]
     pub user: Signer<'info>,
@@ -551,8 +543,8 @@ pub struct V1Swap<'info> {
     #[account(mut)]
     pub pool_wallet_token_1:  Box<Account<'info, TokenAccount>>, // 1 FOR 0
 
-    // #[account(mut)]
-    // pub pool_reward_wallet_token_0: Box<Account<'info, TokenAccount>>, // 0 or 1 FOR 2
+    #[account(mut)]
+    pub reward_pool_wallet_token: Box<Account<'info, TokenAccount>>, // 0 or 1 FOR 2
 
     #[account(mut)]
     pub stakers_list:   Box<Account<'info, ValidatorList>>,
