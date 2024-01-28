@@ -1,0 +1,7 @@
+Key PK : Bjh8zgBiKcFyX8ejQtT5V6hf8jngXavmNFdQcHsjoEXK
+ Token0 PK : HiitUsYUsZL4VRXQpUi2Hgua3HL4r79kFLRRVh1kJ3nG
+ Token0 Addr : J4JTuCx1pgL5DFrNnn4QkRzegW6665yH2autHHkPcrkr
+ Token0 Balance : 200000000
+ Token1 PK : FNEHzHj8iWFrpfeapj425hU9nMybtkQL8PnN5i6jWdNf
+ Token1 Addr : DgnhJpusYf2QoAvcJ14vbSRTNQC4mNgcJ31wwAwyGTzn
+ Token1 Balance : 100000000
