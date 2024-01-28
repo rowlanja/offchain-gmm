@@ -11,7 +11,7 @@ use solana_program::{
 pub use borsh::{BorshDeserialize, BorshSchema, BorshSerialize}; 
 
 
-declare_id!("DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7");
+declare_id!("FcXK2AuHYzE5fykqQj65955bvh5N2LojFkuoC8fz5nVw");
 
 #[program]
 pub mod onchain_gmm_contracts {
@@ -479,7 +479,7 @@ pub struct CreateLiquidityPool<'info> {
     #[account(
         init,
         payer = user,
-        seeds=[b"position".as_ref(), user.key().as_ref(), token0_mint.key().as_ref()],
+        seeds=[b"position".as_ref(), user.key().as_ref(), pool_state.key().as_ref()],
         space = 8 + 2 + 8 + 8,
         bump,
     )]

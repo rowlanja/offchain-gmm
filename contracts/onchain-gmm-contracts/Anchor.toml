@@ -5,13 +5,14 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-onchain_gmm_contracts = "DJmR54jYwYvzAfFKCFrdpg5njsMyeAPyAEqt8usLkUE7"
+onchain_gmm_contracts = "FcXK2AuHYzE5fykqQj65955bvh5N2LojFkuoC8fz5nVw"
+
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "/home/rowla/.config/solana/id.json"
 
 [scripts]
