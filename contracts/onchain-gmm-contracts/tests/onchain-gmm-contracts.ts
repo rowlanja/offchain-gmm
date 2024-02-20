@@ -166,21 +166,21 @@ describe("onchain-gmm-contracts", () => {
     console.log("[Post liquidity Provision] Pool Balance Token A : " + poolBalancePreTokenA);
 
     // SET UP TOKEN0_SOL pool
-    // console.log("[PRE] setting up SOL token0 Pool");
-    // await program.methods
-    // .createSolPool(new anchor.BN(100000), new anchor.BN(100))
-    // .accounts({
-    //   user: alice.publicKey,
-    //   poolState: solToken0StatePDA,
-    //   poolTokenWallet: poolWalletTokenAPDASol,
-    //   position: userSolToken0StakePDA,
-    //   wallet: alice.publicKey,
-    //   userWalletToken: aliceWallet,
-    //   tokenMint: mintAddress,
-    //   tokenProgram: spl.TOKEN_PROGRAM_ID
-    // })
-    // .signers([alice])
-    // .rpc();
+    console.log("[PRE] setting up SOL token0 Pool");
+    await program.methods
+    .createSolPool(new anchor.BN(100000), new anchor.BN(100))
+    .accounts({
+      user: alice.publicKey,
+      poolState: solToken0StatePDA,
+      poolTokenWallet: poolWalletTokenAPDASol,
+      position: userSolToken0StakePDA,
+      wallet: alice.publicKey,
+      userWalletToken: aliceWallet,
+      tokenMint: mintAddress,
+      tokenProgram: spl.TOKEN_PROGRAM_ID
+    })
+    .signers([alice])
+    .rpc();
 
     // /// flakey cant
     // console.log("[PRE] setting up SOL token1 Pool");
