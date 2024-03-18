@@ -37,7 +37,7 @@ export async function mintToAccount(
 export async function sendLamports(
     provider,
     destination,
-    amount
+    amountre
 ) {
     const tx = new anchor.web3.Transaction();
     tx.add(
